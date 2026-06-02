@@ -1,0 +1,9 @@
+.git
+.idea
+target
+build
+*.iml
+*.iws
+*.ipr
+.DS_Store
+HELP.md
