@@ -11,11 +11,19 @@ services:
       - key: PORT
         value: 10000
       - key: SPRING_DATASOURCE_URL
-        sync: false
+        fromDatabase:
+          name: uniproxy-db
+          property: connectionString
       - key: SPRING_DATASOURCE_USERNAME
-        sync: false
+        fromDatabase:
+          name: uniproxy-db
+          property: user
       - key: SPRING_DATASOURCE_PASSWORD
-        sync: false
+        fromDatabase:
+          name: uniproxy-db
+          property: password
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
       - key: SPRING_JPA_SHOW_SQL
@@ -37,7 +45,19 @@ services:
       - key: CATPROXIES_API_BASE_URL
         value: https://catproxies.com/api/v1/public
       - key: CORS_ALLOWED_ORIGINS
-        value: http://localhost:3000,http://localhost:3001,https://uniproxy-frontend.onrender.com,https://uniproxy.cc
+        value: http://localhost:3000,http://localhost:3001,https://uniproxy-frontend.onrender.com,https://uniproxy.netlify.app,https://uniproxy.cc
+      - key: APP_SEED_USER_USERNAME
+        value: user
+      - key: APP_SEED_USER_EMAIL
+        value: user@uniproxy.local
+      - key: APP_SEED_USER_PASSWORD
+        sync: false
+      - key: APP_SEED_ADMIN_USERNAME
+        value: admin
+      - key: APP_SEED_ADMIN_EMAIL
+        value: admin@uniproxy.local
+      - key: APP_SEED_ADMIN_PASSWORD
+        sync: false
   - type: web
     name: uniproxy-frontend
     runtime: static
@@ -46,3 +66,9 @@ services:
     envVars:
       - key: NEXT_PUBLIC_API_BASE_URL
         sync: false
+
+databases:
+  - name: uniproxy-db
+    plan: free
+    databaseName: uniproxy
+    user: uniproxy

@@ -17,7 +17,9 @@ WORKDIR /app
 ENV JAVA_OPTS=""
 
 COPY --from=build /workspace/target/uniproxy-0.0.1-SNAPSHOT.jar app.jar
+COPY docker-entrypoint.sh docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+CMD ["./docker-entrypoint.sh"]
