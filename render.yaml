@@ -29,6 +29,8 @@ services:
         sync: false
       - key: NOWPAYMENTS_API_URL
         value: https://api.nowpayments.io/v1/payment
+      - key: NOWPAYMENTS_INVOICE_URL
+        value: https://api.nowpayments.io/v1/invoice
       - key: APP_BASE_URL
         sync: false
       - key: FRONTEND_BASE_URL

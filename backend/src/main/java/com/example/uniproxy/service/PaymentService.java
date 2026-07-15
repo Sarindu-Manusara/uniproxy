@@ -13,8 +13,11 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class PaymentService {
@@ -30,6 +33,9 @@ public class PaymentService {
 
     @Value("${nowpayments.api-url}")
     private String apiUrl;
+
+    @Value("${nowpayments.invoice-url}")
+    private String invoiceUrl;
 
     @Value("${app.base-url}")
     private String appBaseUrl;
@@ -51,7 +57,6 @@ public class PaymentService {
         Map<String, Object> body = new HashMap<>();
         body.put("price_amount", amount);
         body.put("price_currency", "usd");
-        body.put("pay_currency", "btc");
         body.put("order_id", "ORDER_" + System.currentTimeMillis());
         body.put("order_description", "Deposit to UniProxy Balance for " + user.getUsername());
         body.put("ipn_callback_url", appBaseUrl.replaceAll("/+$", "") + "/api/payments/webhook");
@@ -61,11 +66,17 @@ public class PaymentService {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, request, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(invoiceUrl, request, Map.class);
             Map<String, Object> responseBody = response.getBody();
+            String paymentId = getFirstString(responseBody, "invoice_id", "id", "payment_id");
+            String redirectUrl = getFirstString(responseBody, "invoice_url", "payment_url");
+
+            if (paymentId == null || redirectUrl == null) {
+                throw new IllegalStateException("Payment redirect could not be created. Please try again later.");
+            }
 
             Transaction tx = new Transaction();
-            tx.setPaymentId(responseBody.get("payment_id").toString());
+            tx.setPaymentId(paymentId);
             tx.setAmount(amount);
             tx.setCurrency("USD");
             tx.setStatus("PENDING");
@@ -73,23 +84,26 @@ public class PaymentService {
             tx.setUser(user);
             transactionRepository.save(tx);
 
-            return responseBody.get("invoice_url") != null ?
-                    responseBody.get("invoice_url").toString() :
-                    "Payment Created. ID: " + tx.getPaymentId();
+            return redirectUrl;
 
         } catch (HttpStatusCodeException e) {
             throw new IllegalStateException(friendlyNowPaymentsError(e), e);
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Unable to create payment right now. Please try again later.", e);
         }
     }
 
     public void processWebhook(Map<String, Object> payload) {
-        String paymentId = payload.get("payment_id").toString();
-        String status = payload.get("payment_status").toString();
+        String status = getFirstString(payload, "payment_status", "status");
+
+        if (status == null) {
+            throw new IllegalArgumentException("NOWPayments webhook missing payment status");
+        }
 
         if ("finished".equalsIgnoreCase(status)) {
-            Transaction tx = transactionRepository.findByPaymentId(paymentId)
+            Transaction tx = findTransactionByNowPaymentsPayload(payload)
                     .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
             if (!"FINISHED".equals(tx.getStatus())) {
@@ -144,11 +158,41 @@ public class PaymentService {
         }
     }
 
+    private Optional<Transaction> findTransactionByNowPaymentsPayload(Map<String, Object> payload) {
+        List<String> identifiers = Arrays.asList(
+                getFirstString(payload, "payment_id"),
+                getFirstString(payload, "invoice_id"),
+                getFirstString(payload, "id")
+        );
+
+        return identifiers.stream()
+                .filter(identifier -> identifier != null && !identifier.isBlank())
+                .map(transactionRepository::findByPaymentId)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+    }
+
+    private String getFirstString(Map<String, Object> values, String... keys) {
+        if (values == null) {
+            return null;
+        }
+
+        for (String key : keys) {
+            Object value = values.get(key);
+            if (value != null && !value.toString().isBlank()) {
+                return value.toString();
+            }
+        }
+
+        return null;
+    }
+
     private String friendlyNowPaymentsError(HttpStatusCodeException error) {
         HttpStatusCode status = error.getStatusCode();
-        String body = error.getResponseBodyAsString();
+        String body = error.getResponseBodyAsString().toLowerCase();
 
-        if (status.value() == 401 || status.value() == 403 || body.contains("INVALID_API_KEY")) {
+        if (status.value() == 401 || status.value() == 403 || body.contains("invalid_api_key")) {
             return "Payment gateway authentication failed. Please contact support.";
         }
 

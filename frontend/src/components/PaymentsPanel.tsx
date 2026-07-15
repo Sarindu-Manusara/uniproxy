@@ -24,6 +24,10 @@ function friendlyPaymentError(value: string) {
     return "Payment redirect is unavailable because the payment gateway is not configured correctly. Please contact support.";
   }
 
+  if (message.includes("not configured") || message.includes("payment gateway authentication")) {
+    return "Payment redirect is unavailable because the payment gateway is not configured correctly. Please contact support.";
+  }
+
   if (message.includes("403") || message.includes("forbidden")) {
     return "Payment redirect is unavailable right now. Please contact support.";
   }
@@ -41,6 +45,8 @@ function isPaymentErrorResponse(value: string) {
     message.includes("error creating payment") ||
     message.includes("invalid_api_key") ||
     message.includes("invalid api key") ||
+    message.includes("not configured") ||
+    message.includes("payment gateway authentication") ||
     message.includes("forbidden")
   );
 }
