@@ -11,17 +11,11 @@ services:
       - key: PORT
         value: 10000
       - key: SPRING_DATASOURCE_URL
-        fromDatabase:
-          name: uniproxy-db
-          property: connectionString
+        sync: false
       - key: SPRING_DATASOURCE_USERNAME
-        fromDatabase:
-          name: uniproxy-db
-          property: user
+        sync: false
       - key: SPRING_DATASOURCE_PASSWORD
-        fromDatabase:
-          name: uniproxy-db
-          property: password
+        sync: false
       - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
         value: org.postgresql.Driver
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
@@ -66,9 +60,3 @@ services:
     envVars:
       - key: NEXT_PUBLIC_API_BASE_URL
         sync: false
-
-databases:
-  - name: uniproxy-db
-    plan: free
-    databaseName: uniproxy
-    user: uniproxy
