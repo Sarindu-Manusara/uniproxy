@@ -1418,6 +1418,12 @@ textarea:focus {
 .nav-chevron {
   margin-left: auto;
   color: var(--muted-soft);
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.nav-list button.expanded .nav-chevron {
+  color: var(--primary);
+  transform: rotate(180deg);
 }
 
 .nav-group {
@@ -1427,10 +1433,14 @@ textarea:focus {
 
 .nav-sublist {
   position: relative;
-  display: grid;
+  display: none;
   gap: 4px;
   margin-left: 27px;
   padding-left: 15px;
+}
+
+.nav-sublist.open {
+  display: grid;
 }
 
 .nav-sublist::before {
@@ -2179,6 +2189,31 @@ tbody tr:hover td {
   text-align: center;
 }
 
+.empty-table-state {
+  width: min(100%, 420px);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 10px auto;
+  padding: 22px;
+  color: var(--muted);
+}
+
+.empty-table-state svg {
+  color: var(--primary);
+}
+
+.empty-table-state strong {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.empty-table-state span {
+  max-width: 28rem;
+  font-size: 0.9rem;
+}
+
 .status-badge,
 .method {
   display: inline-flex;
@@ -2301,6 +2336,92 @@ tbody tr:hover td {
   color: var(--success);
   background: var(--success-soft);
   border: 1px solid rgba(22, 122, 67, 0.18);
+}
+
+.toast-region {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 100;
+  width: min(420px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 20px 56px -34px rgba(7, 23, 15, 0.5);
+  backdrop-filter: var(--blur);
+  pointer-events: auto;
+}
+
+.toast-card > svg {
+  margin-top: 2px;
+}
+
+.toast-card strong,
+.toast-card span {
+  display: block;
+}
+
+.toast-card strong {
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.toast-card span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.toast-card button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--muted-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+}
+
+.toast-card button:hover {
+  color: var(--text);
+  background: var(--primary-faint);
+}
+
+.toast-card.success {
+  border-color: rgba(5, 192, 103, 0.2);
+}
+
+.toast-card.success > svg {
+  color: var(--success);
+}
+
+.toast-card.error {
+  border-color: rgba(195, 41, 36, 0.22);
+}
+
+.toast-card.error > svg {
+  color: var(--danger);
+}
+
+.toast-card.info > svg {
+  color: var(--primary);
 }
 
 .support-hero {
@@ -2964,6 +3085,10 @@ tbody tr:hover td {
     display: none;
   }
 
+  .nav-sublist.open {
+    display: none;
+  }
+
   .nav-list {
     display: flex;
     gap: 8px;
@@ -3010,6 +3135,13 @@ tbody tr:hover td {
 
   .workspace {
     padding: 12px;
+  }
+
+  .toast-region {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
   }
 
   .dashboard-card {

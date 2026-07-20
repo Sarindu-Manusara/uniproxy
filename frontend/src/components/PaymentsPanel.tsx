@@ -2,15 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  CreditCard,
-  ExternalLink,
   UserCheck,
   Wallet,
-  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useToast } from "./ToastProvider";
 
 type PaymentsPanelProps = {
   token: string;
@@ -53,33 +49,32 @@ function isPaymentErrorResponse(value: string) {
 
 export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
   const [amount, setAmount] = useState("25");
-  const [paymentResponse, setPaymentResponse] = useState("");
-  const [accountResponse, setAccountResponse] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const createPayment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setError("");
-    setPaymentResponse("");
 
     try {
       const response = await api.createPayment(token, amount);
 
       if (isPaymentErrorResponse(response)) {
-        setError(friendlyPaymentError(response));
+        toast.error("Payment redirect unavailable", friendlyPaymentError(response));
         return;
       }
 
-      setPaymentResponse(response);
       onChanged();
 
       if (response.trim().startsWith("http")) {
+        toast.info("Opening payment invoice", "Redirecting to NOWPayments checkout.");
         window.location.href = response.trim();
+      } else {
+        toast.success("Payment created", response);
       }
     } catch (requestError) {
-      setError(
+      toast.error(
+        "Payment redirect unavailable",
         requestError instanceof Error
           ? friendlyPaymentError(requestError.message)
           : "Payment redirect could not be created. Please try again later."
@@ -91,20 +86,19 @@ export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
 
   const createAccount = async () => {
     setLoading(true);
-    setError("");
-    setAccountResponse("");
 
     try {
       const response = await api.createNowPaymentsAccount(token);
 
       if (isPaymentErrorResponse(response)) {
-        setError(friendlyPaymentError(response));
+        toast.error("Payment gateway unavailable", friendlyPaymentError(response));
         return;
       }
 
-      setAccountResponse(response);
+      toast.success("Payment gateway ready", response);
     } catch (requestError) {
-      setError(
+      toast.error(
+        "Payment gateway unavailable",
         requestError instanceof Error
           ? friendlyPaymentError(requestError.message)
           : "Unable to initialize NOWPayments"
@@ -113,10 +107,6 @@ export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
       setLoading(false);
     }
   };
-
-  const paymentUrl = paymentResponse.trim().startsWith("http")
-    ? paymentResponse.trim()
-    : "";
 
   return (
     <section className="page-stack">
@@ -156,40 +146,6 @@ export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
         </button>
       </div>
 
-      {paymentUrl ? (
-        <a className="external-link" href={paymentUrl}>
-          <CreditCard aria-hidden="true" size={18} />
-          Open payment invoice
-          <ExternalLink aria-hidden="true" size={16} />
-        </a>
-      ) : paymentResponse ? (
-        <p className="form-message">{paymentResponse}</p>
-      ) : null}
-
-      {accountResponse ? (
-        <div className="payment-alert success" role="status">
-          <CheckCircle2 aria-hidden="true" size={20} />
-          <div>
-            <strong>Payment gateway ready</strong>
-            <span>{accountResponse}</span>
-          </div>
-          <button type="button" onClick={() => setAccountResponse("")} aria-label="Dismiss">
-            <X aria-hidden="true" size={16} />
-          </button>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="payment-alert error" role="alert">
-          <AlertTriangle aria-hidden="true" size={20} />
-          <div>
-            <strong>Payment redirect unavailable</strong>
-            <span>{error}</span>
-          </div>
-          <button type="button" onClick={() => setError("")} aria-label="Dismiss">
-            <X aria-hidden="true" size={16} />
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }

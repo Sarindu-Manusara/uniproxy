@@ -10,6 +10,7 @@ import { ProxiesPanel } from "@/components/ProxiesPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { SupportPanel } from "@/components/SupportPanel";
 import { TransactionsPanel } from "@/components/TransactionsPanel";
+import { ToastProvider } from "@/components/ToastProvider";
 import { api } from "@/lib/api";
 import type { Profile, ViewId } from "@/lib/types";
 
@@ -77,6 +78,22 @@ export default function Home() {
         return <ProxiesPanel token={token} onChanged={refreshProfile} />;
       case "payments":
         return <PaymentsPanel token={token} onChanged={refreshProfile} />;
+      case "active-plans":
+        return (
+          <ProxiesPanel
+            token={token}
+            onChanged={refreshProfile}
+            viewMode="active"
+          />
+        );
+      case "purchase-plans":
+        return (
+          <ProxiesPanel
+            token={token}
+            onChanged={refreshProfile}
+            viewMode="purchase"
+          />
+        );
       case "transactions":
         return <TransactionsPanel token={token} />;
       case "settings":
@@ -111,19 +128,25 @@ export default function Home() {
   ]);
 
   if (!token) {
-    return <AuthPanel onAuthenticated={handleAuth} />;
+    return (
+      <ToastProvider>
+        <AuthPanel onAuthenticated={handleAuth} />
+      </ToastProvider>
+    );
   }
 
   return (
-    <AppShell
-      activeView={activeView}
-      onNavigate={setActiveView}
-      onLogout={handleLogout}
-      profile={profile}
-      onRefreshProfile={refreshProfile}
-      loadingProfile={loadingProfile}
-    >
-      {view}
-    </AppShell>
+    <ToastProvider>
+      <AppShell
+        activeView={activeView}
+        onNavigate={setActiveView}
+        onLogout={handleLogout}
+        profile={profile}
+        onRefreshProfile={refreshProfile}
+        loadingProfile={loadingProfile}
+      >
+        {view}
+      </AppShell>
+    </ToastProvider>
   );
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Shield, Users } from "lucide-react";
 import { api, formatCurrency } from "@/lib/api";
 import type { AdminUser } from "@/lib/types";
+import { useToast } from "./ToastProvider";
 
 type AdminPanelProps = {
   token: string;
@@ -13,11 +14,10 @@ export function AdminPanel({ token }: AdminPanelProps) {
   const [revenue, setRevenue] = useState("");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError("");
 
     try {
       const [nextRevenue, nextUsers] = await Promise.all([
@@ -27,11 +27,14 @@ export function AdminPanel({ token }: AdminPanelProps) {
       setRevenue(nextRevenue);
       setUsers(nextUsers);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to load admin data");
+      toast.error(
+        "Admin data unavailable",
+        requestError instanceof Error ? requestError.message : "Unable to load admin data"
+      );
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [toast, token]);
 
   useEffect(() => {
     refresh();
@@ -62,8 +65,6 @@ export function AdminPanel({ token }: AdminPanelProps) {
           <strong>{users.length}</strong>
         </article>
       </div>
-
-      {error ? <p className="form-error">{error}</p> : null}
 
       <div className="table-wrap">
         <table>

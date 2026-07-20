@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { KeyRound, Mail, RefreshCw, User } from "lucide-react";
 import { api, formatCurrency } from "@/lib/api";
 import type { Profile } from "@/lib/types";
+import { useToast } from "./ToastProvider";
 
 type SettingsPanelProps = {
   token: string;
@@ -18,23 +19,23 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const updatePassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
-    setError("");
 
     try {
       const response = await api.updatePassword(token, oldPassword, newPassword);
-      setMessage(response);
+      toast.success("Password updated", response);
       setOldPassword("");
       setNewPassword("");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to update password");
+      toast.error(
+        "Password update failed",
+        requestError instanceof Error ? requestError.message : "Unable to update password"
+      );
     } finally {
       setLoading(false);
     }
@@ -97,9 +98,6 @@ export function SettingsPanel({
           Update password
         </button>
       </form>
-
-      {message ? <p className="form-message">{message}</p> : null}
-      {error ? <p className="form-error">{error}</p> : null}
     </section>
   );
 }

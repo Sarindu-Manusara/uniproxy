@@ -20,6 +20,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useToast } from "./ToastProvider";
 
 type AuthPanelProps = {
   onAuthenticated: (token: string) => void;
@@ -183,20 +184,17 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    setMessage("");
-    setError("");
 
     try {
       if (mode === "register") {
         const response = await api.register(username, email, password);
-        setMessage(response);
+        toast.success("Account created", response);
         setMode("login");
         return;
       }
@@ -204,7 +202,8 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
       const token = await api.login(username, password);
       onAuthenticated(token);
     } catch (requestError) {
-      setError(
+      toast.error(
+        "Authentication failed",
         requestError instanceof Error
           ? requestError.message
           : "Request failed"
@@ -380,9 +379,6 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                     required
                   />
                 </label>
-
-                {error ? <p className="form-error">{error}</p> : null}
-                {message ? <p className="form-message">{message}</p> : null}
 
                 <button
                   className="primary-button wide-button"

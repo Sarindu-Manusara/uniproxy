@@ -14,16 +14,17 @@ import {
   ShieldCheck,
   ShoppingCart,
   SlidersHorizontal,
-  Sparkles,
   Wifi,
   Zap,
 } from "lucide-react";
 import { api, formatCurrency, formatDate } from "@/lib/api";
 import type { UserProxy } from "@/lib/types";
+import { useToast } from "./ToastProvider";
 
 type ProxiesPanelProps = {
   token: string;
   onChanged: () => void;
+  viewMode?: "active" | "purchase" | "all";
 };
 
 type PlanCategory = "residential" | "mobile" | "datacenter" | "ipv6" | "isp";
@@ -638,7 +639,11 @@ const visiblePlanLabel = (category: PlanCategory, tier: PlanTier) =>
     categoryTabs.find((item) => item.id === category)?.label
   }`;
 
-export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
+export function ProxiesPanel({
+  token,
+  onChanged,
+  viewMode = "all",
+}: ProxiesPanelProps) {
   const [proxies, setProxies] = useState<UserProxy[]>([]);
   const [providerPlans, setProviderPlans] = useState<ProxyPlan[]>([]);
   const [activeCategory, setActiveCategory] =
@@ -653,11 +658,11 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
   const [coupon, setCoupon] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState("");
-  const [providerMessage, setProviderMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [providerLoading, setProviderLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const toast = useToast();
+  const showPricing = viewMode !== "active";
+  const showInventory = viewMode !== "purchase";
 
   const plans = useMemo(
     () => [...providerPlans, ...fallbackPlans],
@@ -676,12 +681,12 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError("");
 
     try {
       setProxies(await api.proxies(token));
     } catch (requestError) {
-      setError(
+      toast.error(
+        "Active plans unavailable",
         requestError instanceof Error
           ? requestError.message
           : "Unable to load proxies"
@@ -689,11 +694,10 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [toast, token]);
 
   const loadProviderStore = useCallback(async () => {
     setProviderLoading(true);
-    setProviderMessage("");
 
     try {
       const proxyType = categoryTabs.find((item) => item.id === activeCategory)?.label;
@@ -709,13 +713,14 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
         return [...otherCategories, ...parsed];
       });
 
-      setProviderMessage(
-        parsed.length
-          ? `${parsed.length} live provider plans loaded.`
-          : "Provider store returned no plans for this category."
-      );
+      if (parsed.length) {
+        toast.success("Provider store synced", `${parsed.length} live provider plans loaded.`);
+      } else {
+        toast.info("Provider store synced", "No live plans were returned for this category.");
+      }
     } catch (requestError) {
-      setProviderMessage(
+      toast.error(
+        "Provider store unavailable",
         requestError instanceof Error
           ? requestError.message
           : "Provider store unavailable. Showing UniProxy catalog."
@@ -723,7 +728,7 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
     } finally {
       setProviderLoading(false);
     }
-  }, [activeCategory, token]);
+  }, [activeCategory, toast, token]);
 
   useEffect(() => {
     refresh();
@@ -739,14 +744,12 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
     setCoupon("");
     setTermsAccepted(false);
     setCheckoutResult("");
-    setMessage("");
-    setError("");
   };
 
   const copyProxy = async (proxy: UserProxy) => {
     const value = `${proxy.ip}:${proxy.port}:${proxy.proxyUsername}:${proxy.proxyPassword}`;
     await navigator.clipboard.writeText(value);
-    setMessage("Proxy copied.");
+    toast.success("Proxy copied", "Proxy credentials were copied to the clipboard.");
   };
 
   const checkoutSubtotal = checkoutPlan
@@ -760,13 +763,11 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
 
   const submitCheckout = async () => {
     if (!checkoutPlan || !termsAccepted) {
-      setError("Accept the checkout terms before purchasing.");
+      toast.error("Checkout blocked", "Accept the checkout terms before purchasing.");
       return;
     }
 
     setLoading(true);
-    setMessage("");
-    setError("");
     setCheckoutResult("");
 
     try {
@@ -801,15 +802,16 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
 
         const response = await api.providerCreateOrder(token, body);
         setCheckoutResult(JSON.stringify(response, null, 2));
-        setMessage("Provider order created.");
+        toast.success("Provider order created", "The provider returned an order response.");
       } else {
         const response = await api.purchaseProxy(token, checkoutTotal.toFixed(2));
-        setMessage(response);
+        toast.success("Plan purchased", response);
         await refresh();
         onChanged();
       }
     } catch (requestError) {
-      setError(
+      toast.error(
+        "Checkout failed",
         requestError instanceof Error
           ? requestError.message
           : "Unable to complete checkout"
@@ -1029,8 +1031,6 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
           </aside>
         </div>
 
-        {message ? <p className="form-message">{message}</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
         {checkoutResult ? (
           <pre className="checkout-result">{checkoutResult}</pre>
         ) : null}
@@ -1040,6 +1040,7 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
 
   return (
     <section className="page-stack purchase-page">
+      {showPricing ? (
       <section className="pricing-shell" aria-label="Pricing plans">
         <div className="pricing-heading">
           <div>
@@ -1060,13 +1061,6 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
             {providerLoading ? "Syncing..." : "Sync provider store"}
           </button>
         </div>
-
-        {providerMessage ? (
-          <p className="muted-row">
-            <Sparkles aria-hidden="true" size={16} />
-            {providerMessage}
-          </p>
-        ) : null}
 
         <div className="plan-tabs" role="tablist" aria-label="Proxy categories">
           {categoryTabs.map((category) => (
@@ -1180,70 +1174,78 @@ export function ProxiesPanel({ token, onChanged }: ProxiesPanelProps) {
           </aside>
         </div>
       </section>
+      ) : null}
 
-      {message ? <p className="form-message">{message}</p> : null}
-      {error ? <p className="form-error">{error}</p> : null}
+      {showInventory ? (
+        <>
+          <div className="section-heading inventory-heading">
+            <div>
+              <p className="eyebrow">Active plans</p>
+              <h1>Proxy inventory</h1>
+            </div>
+            <button className="secondary-button" type="button" onClick={refresh}>
+              <RefreshCw aria-hidden="true" size={18} />
+              Refresh
+            </button>
+          </div>
 
-      <div className="section-heading inventory-heading">
-        <div>
-          <p className="eyebrow">Active plans</p>
-          <h1>Proxy inventory</h1>
-        </div>
-        <button className="secondary-button" type="button" onClick={refresh}>
-          <RefreshCw aria-hidden="true" size={18} />
-          Refresh
-        </button>
-      </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>IP</th>
+                  <th>Port</th>
+                  <th>Username</th>
+                  <th>Password</th>
+                  <th>Expiry</th>
+                  <th>Copy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {proxies.map((proxy) => (
+                  <tr key={proxy.id}>
+                    <td>{proxy.ip}</td>
+                    <td>{proxy.port}</td>
+                    <td>{proxy.proxyUsername}</td>
+                    <td>{proxy.proxyPassword}</td>
+                    <td>{formatDate(proxy.expiryDate)}</td>
+                    <td>
+                      <button
+                        className="icon-button table-icon"
+                        type="button"
+                        onClick={() => copyProxy(proxy)}
+                        aria-label={`Copy proxy ${proxy.id}`}
+                        title="Copy proxy"
+                      >
+                        <Copy aria-hidden="true" size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && proxies.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="empty-cell">
+                      <div className="empty-table-state">
+                        <PackageCheck aria-hidden="true" size={22} />
+                        <strong>No active plans</strong>
+                        <span>
+                          Purchased proxy plans and credentials will appear here.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>IP</th>
-              <th>Port</th>
-              <th>Username</th>
-              <th>Password</th>
-              <th>Expiry</th>
-              <th>Copy</th>
-            </tr>
-          </thead>
-          <tbody>
-            {proxies.map((proxy) => (
-              <tr key={proxy.id}>
-                <td>{proxy.ip}</td>
-                <td>{proxy.port}</td>
-                <td>{proxy.proxyUsername}</td>
-                <td>{proxy.proxyPassword}</td>
-                <td>{formatDate(proxy.expiryDate)}</td>
-                <td>
-                  <button
-                    className="icon-button table-icon"
-                    type="button"
-                    onClick={() => copyProxy(proxy)}
-                    aria-label={`Copy proxy ${proxy.id}`}
-                    title="Copy proxy"
-                  >
-                    <Copy aria-hidden="true" size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!loading && proxies.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="empty-cell">
-                  No proxies found.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
-
-      {loading ? (
-        <p className="muted-row">
-          <Server aria-hidden="true" size={16} />
-          Loading proxy data
-        </p>
+          {loading ? (
+            <p className="muted-row">
+              <Server aria-hidden="true" size={16} />
+              Loading proxy data
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       <div className="provider-footnote">

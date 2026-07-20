@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Bookmark,
@@ -41,6 +41,18 @@ export function AppShell({
   onRefreshProfile,
   loadingProfile,
 }: AppShellProps) {
+  const plansActive =
+    activeView === "proxies" ||
+    activeView === "active-plans" ||
+    activeView === "purchase-plans";
+  const [plansOpen, setPlansOpen] = useState(plansActive);
+
+  useEffect(() => {
+    if (plansActive) {
+      setPlansOpen(true);
+    }
+  }, [plansActive]);
+
   return (
     <main className="app-layout">
       <aside className="sidebar">
@@ -79,8 +91,11 @@ export function AppShell({
           <div className="nav-group">
             <button
               type="button"
-              className={activeView === "proxies" ? "active parent-active" : ""}
-              onClick={() => onNavigate("proxies")}
+              className={`${plansActive ? "active parent-active" : ""} ${
+                plansOpen ? "expanded" : ""
+              }`}
+              aria-expanded={plansOpen}
+              onClick={() => setPlansOpen((current) => !current)}
             >
               <span className="nav-icon">
                 <Bookmark aria-hidden="true" size={22} />
@@ -89,15 +104,23 @@ export function AppShell({
               <ChevronDown aria-hidden="true" className="nav-chevron" size={18} />
             </button>
 
-            <div className="nav-sublist">
-              <button type="button" onClick={() => onNavigate("proxies")}>
+            <div className={`nav-sublist ${plansOpen ? "open" : ""}`}>
+              <button
+                type="button"
+                className={activeView === "active-plans" ? "active" : ""}
+                onClick={() => onNavigate("active-plans")}
+              >
                 <CreditCard aria-hidden="true" size={16} />
                 Active Plans
               </button>
               <button
                 type="button"
-                className={activeView === "proxies" ? "active" : ""}
-                onClick={() => onNavigate("proxies")}
+                className={
+                  activeView === "purchase-plans" || activeView === "proxies"
+                    ? "active"
+                    : ""
+                }
+                onClick={() => onNavigate("purchase-plans")}
               >
                 <PackageCheck aria-hidden="true" size={16} />
                 Purchase Plans

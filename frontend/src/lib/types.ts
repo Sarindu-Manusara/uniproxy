@@ -34,6 +34,8 @@ export type ViewId =
   | "dashboard"
   | "support"
   | "proxies"
+  | "active-plans"
+  | "purchase-plans"
   | "payments"
   | "transactions"
   | "settings"

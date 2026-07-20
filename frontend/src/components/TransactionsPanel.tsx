@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { History, RefreshCw } from "lucide-react";
 import { api, formatCurrency, formatDate } from "@/lib/api";
 import type { Transaction } from "@/lib/types";
+import { useToast } from "./ToastProvider";
 
 type TransactionsPanelProps = {
   token: string;
@@ -12,16 +13,16 @@ type TransactionsPanelProps = {
 export function TransactionsPanel({ token }: TransactionsPanelProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError("");
 
     try {
       setTransactions(await api.transactions(token));
     } catch (requestError) {
-      setError(
+      toast.error(
+        "Transactions unavailable",
         requestError instanceof Error
           ? requestError.message
           : "Unable to load transactions"
@@ -29,7 +30,7 @@ export function TransactionsPanel({ token }: TransactionsPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [toast, token]);
 
   useEffect(() => {
     refresh();
@@ -47,8 +48,6 @@ export function TransactionsPanel({ token }: TransactionsPanelProps) {
           Refresh
         </button>
       </div>
-
-      {error ? <p className="form-error">{error}</p> : null}
 
       <div className="table-wrap">
         <table>

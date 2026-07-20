@@ -14,6 +14,7 @@ import {
   Target,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useToast } from "./ToastProvider";
 
 type EndpointDoc = {
   method: string;
@@ -369,8 +370,8 @@ export function SupportPanel({ token }: SupportPanelProps) {
     })
   );
   const [consoleLoading, setConsoleLoading] = useState(false);
-  const [consoleError, setConsoleError] = useState("");
   const [consoleResult, setConsoleResult] = useState("");
+  const toast = useToast();
 
   const selectedAction = useMemo(
     () => explorerActions.find((item) => item.id === action),
@@ -379,7 +380,6 @@ export function SupportPanel({ token }: SupportPanelProps) {
 
   const runExplorer = async () => {
     setConsoleLoading(true);
-    setConsoleError("");
     setConsoleResult("");
 
     try {
@@ -449,7 +449,8 @@ export function SupportPanel({ token }: SupportPanelProps) {
 
       setConsoleResult(json(result));
     } catch (error) {
-      setConsoleError(
+      toast.error(
+        "API request failed",
         error instanceof Error ? error.message : "Unable to run API request"
       );
     } finally {
@@ -624,7 +625,6 @@ export function SupportPanel({ token }: SupportPanelProps) {
           </label>
         </div>
 
-        {consoleError ? <p className="form-error">{consoleError}</p> : null}
         {consoleResult ? (
           <pre className="api-console-result">{consoleResult}</pre>
         ) : null}

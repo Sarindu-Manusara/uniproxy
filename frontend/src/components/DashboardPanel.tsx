@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api, API_BASE_URL, formatCurrency } from "@/lib/api";
 import type { Profile, ViewId } from "@/lib/types";
+import { useToast } from "./ToastProvider";
 
 type DashboardPanelProps = {
   token: string;
@@ -29,6 +30,7 @@ export function DashboardPanel({
   onNavigate,
 }: DashboardPanelProps) {
   const [health, setHealth] = useState("Checking");
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +53,12 @@ export function DashboardPanel({
     };
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      toast.error("Profile unavailable", error);
+    }
+  }, [error, toast]);
+
   return (
     <section className="page-stack">
       <div className="section-heading">
@@ -63,8 +71,6 @@ export function DashboardPanel({
           Refresh
         </button>
       </div>
-
-      {error ? <p className="form-error">{error}</p> : null}
 
       <div className="metric-grid">
         <article className="metric-card">
@@ -94,7 +100,7 @@ export function DashboardPanel({
           <CreditCard aria-hidden="true" size={22} />
           <span>Deposit funds</span>
         </button>
-        <button className="action-tile" type="button" onClick={() => onNavigate("proxies")}>
+        <button className="action-tile" type="button" onClick={() => onNavigate("purchase-plans")}>
           <Server aria-hidden="true" size={22} />
           <span>Purchase proxy</span>
         </button>
