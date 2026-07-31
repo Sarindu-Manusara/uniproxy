@@ -7,10 +7,11 @@ import com.example.uniproxy.repository.UserProxyRepository;
 import com.example.uniproxy.service.CatProxiesApiService;
 import com.example.uniproxy.service.ProxyService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -41,12 +42,23 @@ public class ProxyController {
     }
 
     @PostMapping("/purchase")
-    public String purchase(@RequestParam BigDecimal price) {
+    public ResponseEntity<Object> purchase(
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return proxyService.purchaseProxy(user, price);
+        try {
+            if (body == null || body.isEmpty()) {
+                return ResponseEntity.badRequest().body("Select a live CatProxies package before purchasing.");
+            }
+            return ResponseEntity.ok(proxyService.purchaseProxy(user, body));
+        } catch (IllegalArgumentException | IllegalStateException error) {
+            return ResponseEntity.badRequest().body(error.getMessage());
+        } catch (RuntimeException error) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error.getMessage());
+        }
     }
 
     @GetMapping("/provider/account")
@@ -97,6 +109,11 @@ public class ProxyController {
         return catProxiesApiService.extendOrder(orderId, body == null ? Map.of() : body);
     }
 
+    @GetMapping("/provider/order/{orderId}/whitelist")
+    public Object providerListWhitelistIps(@PathVariable String orderId) {
+        return catProxiesApiService.listWhitelistIps(orderId);
+    }
+
     @PatchMapping("/provider/order/{orderId}/whitelist")
     public Object providerAddWhitelistIp(
             @PathVariable String orderId,
@@ -111,6 +128,32 @@ public class ProxyController {
             @RequestBody Map<String, Object> body
     ) {
         return catProxiesApiService.removeWhitelistIp(orderId, body);
+    }
+
+    @GetMapping("/provider/order/{orderId}/usage-stats")
+    public Object providerUsageStats(@PathVariable String orderId) {
+        return catProxiesApiService.getUsageStats(orderId);
+    }
+
+    @PostMapping("/provider/order/{orderId}/reset-password")
+    public Object providerResetPassword(@PathVariable String orderId) {
+        return catProxiesApiService.resetPassword(orderId);
+    }
+
+    @GetMapping("/provider/order/{orderId}/proxies")
+    public Object providerOrderProxies(@PathVariable String orderId) {
+        return catProxiesApiService.getOrderProxies(orderId);
+    }
+
+    @GetMapping("/provider/order/{orderId}/unlimited-metrics")
+    public Object providerUnlimitedMetrics(
+            @PathVariable String orderId,
+            @RequestParam(required = false) String view,
+            @RequestParam(required = false) String timeframe,
+            @RequestParam(required = false) String interval,
+            @RequestParam(required = false) Integer page
+    ) {
+        return catProxiesApiService.getUnlimitedMetrics(orderId, view, timeframe, interval, page);
     }
 
     @GetMapping("/provider/targeting/gresi")

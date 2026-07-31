@@ -199,7 +199,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: gb,
     description: "Balanced residential bandwidth for general proxy work.",
     features: baseFeatures.residential,
-    providerProxyType: "Residential",
+    providerProxyType: "gResidential",
     requiresCountry: true,
   }));
 
@@ -222,7 +222,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: gb,
     description: "Higher trust residential bandwidth for stricter targets.",
     features: baseFeatures.premiumResidential,
-    providerProxyType: "Residential",
+    providerProxyType: "resix",
     requiresCountry: true,
     popular: gb === 50,
   }));
@@ -266,7 +266,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: gb,
     description: "Mobile carrier bandwidth for testing and verification.",
     features: baseFeatures.mobile,
-    providerProxyType: "Mobile",
+    providerProxyType: "RotatingMobile",
     requiresCountry: true,
   }));
 
@@ -287,7 +287,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: gb,
     description: "Priority mobile bandwidth with better carrier quality.",
     features: [...baseFeatures.mobile, "Priority mobile pool"],
-    providerProxyType: "Mobile",
+    providerProxyType: "RotatingMobile",
     requiresCountry: true,
     popular: gb === 10,
   }));
@@ -329,7 +329,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: ips,
     description: "Fast datacenter IPs for automation and browser profiles.",
     features: baseFeatures.datacenter,
-    providerProxyType: "Datacenter",
+    providerProxyType: "DatacenterP",
     adjustableQuantity: true,
   }));
 
@@ -371,7 +371,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: 1,
     description: "Rotating datacenter gateway with unlimited traffic.",
     features: [...baseFeatures.datacenter, "Unlimited traffic"],
-    providerProxyType: "Datacenter",
+    providerProxyType: "DatacenterP",
   }));
 
   const ipv6Standard = [
@@ -391,7 +391,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: ips,
     description: "IPv6 proxy pack for modern automation tools.",
     features: baseFeatures.ipv6,
-    providerProxyType: "Ipv6",
+    providerProxyType: "Ipv6p",
     requiresCountry: true,
   }));
 
@@ -411,7 +411,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: ips,
     description: "Premium IPv6 routes with cleaner subnet allocation.",
     features: [...baseFeatures.ipv6, "Priority subnet allocation"],
-    providerProxyType: "Ipv6",
+    providerProxyType: "Ipv6p",
     requiresCountry: true,
   }));
 
@@ -430,7 +430,7 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: 1,
     description: "Unlimited IPv6 gateway plan for large-scale workflows.",
     features: [...baseFeatures.ipv6, "Unlimited sessions"],
-    providerProxyType: "Ipv6",
+    providerProxyType: "Ipv6p",
     requiresCountry: true,
   }));
 
@@ -473,8 +473,8 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: ips,
     description: "Cleaner ISP allocation for accounts and long-lived sessions.",
     features: [...baseFeatures.isp, "Premium ISP pool"],
-    providerProxyType: "Isp",
-    requiresCountry: true,
+    providerProxyType: "IspP",
+    requiresCountry: false,
     adjustableQuantity: true,
     popular: ips === 25,
   }));
@@ -495,8 +495,8 @@ const buildPlans = (): ProxyPlan[] => {
     quantity: ips,
     description: "Static ISP proxies with unlimited bandwidth.",
     features: [...baseFeatures.isp, "Unlimited bandwidth"],
-    providerProxyType: "Isp",
-    requiresCountry: true,
+    providerProxyType: "IspP",
+    requiresCountry: false,
     adjustableQuantity: true,
   }));
 
@@ -529,6 +529,23 @@ const toNumber = (value: unknown, fallback = 0) => {
 const toTitle = (value: unknown) =>
   typeof value === "string" && value.trim() ? value.trim() : "";
 
+const providerProxyTypeFor = (
+  category: PlanCategory,
+  tier: PlanTier = "standard"
+) => {
+  if (category === "residential") {
+    if (tier === "premium") return "resix";
+    if (tier === "unlimited") return "UnlimitedResidential";
+    return "gResidential";
+  }
+
+  if (category === "mobile") return "RotatingMobile";
+  if (category === "datacenter") return "DatacenterP";
+  if (category === "ipv6") return "Ipv6p";
+  if (category === "isp") return tier === "premium" ? "IspP" : "Isp";
+  return "gResidential";
+};
+
 const unwrapArray = (value: unknown): unknown[] => {
   if (Array.isArray(value)) {
     return value;
@@ -539,9 +556,14 @@ const unwrapArray = (value: unknown): unknown[] => {
     const candidates = [
       record.payload,
       record.data,
+      record.store,
       record.packages,
       record.products,
       record.items,
+      record.servers,
+      record.proxies,
+      record.lines,
+      record.orders,
     ];
 
     for (const candidate of candidates) {
@@ -558,21 +580,21 @@ const unwrapArray = (value: unknown): unknown[] => {
 const inferCategory = (input: string): PlanCategory => {
   const text = input.toLowerCase();
 
-  if (text.includes("mobile")) return "mobile";
-  if (text.includes("datacenter")) return "datacenter";
-  if (text.includes("ipv6")) return "ipv6";
-  if (text.includes("isp")) return "isp";
+  if (text.includes("rotatingmobile") || text.includes("mobile")) return "mobile";
+  if (text.includes("datacenterp") || text.includes("datacenter")) return "datacenter";
+  if (text.includes("ipv6p") || text.includes("ipv6")) return "ipv6";
+  if (text.includes("ispp") || text.includes("isp")) return "isp";
   return "residential";
 };
 
 const inferTier = (input: string): PlanTier => {
   const text = input.toLowerCase();
 
-  if (text.includes("premium") || text.includes("resi bd") || text.includes("resibd")) {
+  if (text.includes("resix") || text.includes("ispp") || text.includes("premium") || text.includes("resi bd") || text.includes("resibd")) {
     return "premium";
   }
 
-  if (text.includes("unlimited")) {
+  if (text.includes("unlimitedresidential") || text.includes("unlimited")) {
     return "unlimited";
   }
 
@@ -627,9 +649,9 @@ const parseProviderPlan = (item: unknown): ProxyPlan | null => {
       "Server-side API key protection",
       "Provider order endpoint ready",
     ],
-    providerProxyType: proxyType || category,
+    providerProxyType: proxyType || providerProxyTypeFor(category, tier),
     providerPackageId: id || undefined,
-    requiresCountry: category !== "datacenter",
+    requiresCountry: proxyType === "Isp" || (category !== "datacenter" && proxyType !== "IspP"),
     adjustableQuantity: category === "isp" || category === "datacenter",
   };
 };
@@ -700,7 +722,7 @@ export function ProxiesPanel({
     setProviderLoading(true);
 
     try {
-      const proxyType = categoryTabs.find((item) => item.id === activeCategory)?.label;
+      const proxyType = providerProxyTypeFor(activeCategory, activeTier);
       const response = await api.providerStore(token, proxyType);
       const parsed = unwrapArray(response)
         .map(parseProviderPlan)
@@ -728,7 +750,7 @@ export function ProxiesPanel({
     } finally {
       setProviderLoading(false);
     }
-  }, [activeCategory, toast, token]);
+  }, [activeCategory, activeTier, toast, token]);
 
   useEffect(() => {
     refresh();
@@ -767,48 +789,46 @@ export function ProxiesPanel({
       return;
     }
 
+    if (paymentMethod !== "Balance") {
+      toast.error("Checkout blocked", "Deposit balance first, then purchase CatProxies plans from your account balance.");
+      return;
+    }
+
+    const providerPackageId = packageId.trim() || checkoutPlan.providerPackageId;
+    if (!providerPackageId) {
+      toast.error(
+        "Live package required",
+        "Sync the CatProxies provider store and select a live package before buying."
+      );
+      return;
+    }
+
     setLoading(true);
     setCheckoutResult("");
 
     try {
-      if (packageId.trim()) {
-        const selectedCountry = countryOptions.find((item) => item.id === countryId);
-        const body: Record<string, unknown> = {
-          packageId: packageId.trim(),
-        };
+      const selectedCountry = countryOptions.find((item) => item.id === countryId);
+      const body: Record<string, unknown> = {
+        packageId: providerPackageId,
+        proxyType: checkoutPlan.providerProxyType,
+        quantity,
+        countryId: toNumber(countryId, Number(countryId)),
+        countryCode: selectedCountry?.code || "US",
+      };
 
-        if (checkoutPlan.category === "isp") {
-          body.ispData = {
-            quantity,
-            countryId: toNumber(countryId, Number(countryId)),
-          };
-        }
-
-        if (checkoutPlan.category === "datacenter" && checkoutPlan.tier === "premium") {
-          body.datacenterPData = {
-            country_proxies: selectedCountry ? { [selectedCountry.code]: quantity } : {},
-            high_concurrency: false,
-            high_priority: false,
-            whitelisted_ips: false,
-          };
-        }
-
-        if (checkoutPlan.category !== "isp" && checkoutPlan.category !== "datacenter") {
-          body.targeting = {
-            countryId: toNumber(countryId, Number(countryId)),
-            country: selectedCountry?.name,
-          };
-        }
-
-        const response = await api.providerCreateOrder(token, body);
-        setCheckoutResult(JSON.stringify(response, null, 2));
-        toast.success("Provider order created", "The provider returned an order response.");
-      } else {
-        const response = await api.purchaseProxy(token, checkoutTotal.toFixed(2));
-        toast.success("Plan purchased", response);
-        await refresh();
-        onChanged();
+      if (checkoutPlan.category === "datacenter") {
+        body.countryProxies = selectedCountry ? { [selectedCountry.code]: quantity } : {};
+        body.highConcurrency = false;
+        body.highPriority = false;
+        body.whitelistedIps = false;
       }
+
+      const response = await api.purchaseProxy(token, body);
+      setCheckoutResult(JSON.stringify(response, null, 2));
+      toast.success("Plan purchased", response.message);
+      setCheckoutPlan(null);
+      await refresh();
+      onChanged();
     } catch (requestError) {
       toast.error(
         "Checkout failed",
@@ -877,11 +897,11 @@ export function ProxiesPanel({
                 <input
                   value={packageId}
                   onChange={(event) => setPackageId(event.target.value)}
-                  placeholder="Optional. Paste live package id from provider store"
+                  placeholder="Required. Sync provider store or paste a CatProxies package id"
                 />
                 <span>
-                  Leave blank for the local demo purchase flow. Fill this for
-                  real CatProxies reseller order creation.
+                  Purchases are sent to CatProxies. Local demo purchases are
+                  disabled.
                 </span>
               </label>
 
@@ -1018,16 +1038,10 @@ export function ProxiesPanel({
               {loading ? "Processing..." : "Buy Now"}
             </button>
 
-            {packageId.trim() ? (
-              <p className="checkout-note">
-                This will call `/api/proxies/provider/order` through the
-                Spring Boot backend.
-              </p>
-            ) : (
-              <p className="checkout-note">
-                Demo checkout uses the local balance purchase endpoint.
-              </p>
-            )}
+            <p className="checkout-note">
+              This uses your UniProxy balance, buys the package from
+              CatProxies, and saves returned credentials into Active Plans.
+            </p>
           </aside>
         </div>
 

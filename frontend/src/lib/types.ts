@@ -19,6 +19,22 @@ export type UserProxy = {
   proxyUsername: string;
   proxyPassword: string;
   expiryDate: string;
+  provider?: string | null;
+  providerOrderId?: string | null;
+  packageId?: string | null;
+  packageName?: string | null;
+  proxyType?: string | null;
+  protocol?: string | null;
+  providerStatus?: string | null;
+};
+
+export type ProxyPurchaseResponse = {
+  message: string;
+  provider: string;
+  orderId?: string | null;
+  chargedAmount: number | string;
+  savedProxies: number;
+  orderPayload?: unknown;
 };
 
 export type AdminUser = {

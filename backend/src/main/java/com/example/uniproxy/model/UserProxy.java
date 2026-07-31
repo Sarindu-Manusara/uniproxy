@@ -17,6 +17,13 @@ public class UserProxy {
     private String proxyUsername;
     private String proxyPassword;
     private LocalDateTime expiryDate;
+    private String provider;
+    private String providerOrderId;
+    private String packageId;
+    private String packageName;
+    private String proxyType;
+    private String protocol;
+    private String providerStatus;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

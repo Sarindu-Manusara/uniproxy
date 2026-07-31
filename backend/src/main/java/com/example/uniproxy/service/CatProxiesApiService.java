@@ -11,6 +11,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -65,12 +66,46 @@ public class CatProxiesApiService {
         return request(HttpMethod.POST, "/order/" + orderId + "/extend", null, body);
     }
 
+    public Object listWhitelistIps(String orderId) {
+        return request(HttpMethod.GET, "/order/" + orderId + "/whitelist", null, null);
+    }
+
     public Object addWhitelistIp(String orderId, Map<String, Object> body) {
         return request(HttpMethod.PATCH, "/order/" + orderId + "/whitelist", null, body);
     }
 
     public Object removeWhitelistIp(String orderId, Map<String, Object> body) {
         return request(HttpMethod.DELETE, "/order/" + orderId + "/whitelist", null, body);
+    }
+
+    public Object getUsageStats(String orderId) {
+        return request(HttpMethod.GET, "/order/" + orderId + "/usage-stats", null, null);
+    }
+
+    public Object resetPassword(String orderId) {
+        return request(HttpMethod.POST, "/order/" + orderId + "/reset-password", null, Map.of());
+    }
+
+    public Object getOrderProxies(String orderId) {
+        return request(HttpMethod.GET, "/order/" + orderId + "/proxies", null, null);
+    }
+
+    public Object getUnlimitedMetrics(
+            String orderId,
+            String view,
+            String timeframe,
+            String interval,
+            Integer page
+    ) {
+        UriParams params = new UriParams();
+        params.putIfPresent("view", view);
+        params.putIfPresent("timeframe", timeframe);
+        params.putIfPresent("interval", interval);
+        if (page != null) {
+            params.putIfPresent("page", page.toString());
+        }
+
+        return request(HttpMethod.GET, "/order/" + orderId + "/unlimited-metrics", params.values(), null);
     }
 
     public Object getGresiTargetingOptions() {
@@ -143,7 +178,7 @@ public class CatProxiesApiService {
     }
 
     private static final class UriParams {
-        private final java.util.HashMap<String, String> values = new java.util.HashMap<>();
+        private final HashMap<String, String> values = new HashMap<>();
 
         void putIfPresent(String key, String value) {
             if (value != null && !value.isBlank()) {

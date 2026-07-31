@@ -38,8 +38,13 @@ type ExplorerAction =
   | "orderDetails"
   | "extendOptions"
   | "extendOrder"
+  | "whitelistList"
   | "whitelistAdd"
   | "whitelistRemove"
+  | "usageStats"
+  | "resetPassword"
+  | "orderProxies"
+  | "unlimitedMetrics"
   | "gresiTargeting"
   | "mobileCountries"
   | "mobileRegions"
@@ -64,7 +69,7 @@ const examples: Record<string, Pick<EndpointDoc, "request" | "response">> = {
     }),
   },
   store: {
-    request: "GET /api/proxies/provider/store?proxyType=Residential",
+    request: "GET /api/proxies/provider/store?proxyType=gResidential",
     response: json([
       {
         id: "pkg_resi_10gb",
@@ -161,6 +166,28 @@ Content-Type: application/json
 
 ${json({ ip: "203.0.113.10" })}`,
     response: json({ status: "success", whitelist: [] }),
+  },
+  whitelistList: {
+    request: "GET /api/proxies/provider/order/ord_67890/whitelist",
+    response: json({ whitelist: ["203.0.113.10"] }),
+  },
+  usageStats: {
+    request: "GET /api/proxies/provider/order/ord_67890/usage-stats",
+    response: json({ requests: 12500, bandwidthGb: 8.4, successRate: 99.1 }),
+  },
+  resetPassword: {
+    request: "POST /api/proxies/provider/order/ord_67890/reset-password",
+    response: json({ status: "success", password: "new-password" }),
+  },
+  orderProxies: {
+    request: "GET /api/proxies/provider/order/ord_67890/proxies",
+    response: json([
+      { host: "203.0.113.25", port: 1338, login: "line-user", password: "line-pass" },
+    ]),
+  },
+  unlimitedMetrics: {
+    request: "GET /api/proxies/provider/order/ord_67890/unlimited-metrics?view=overview",
+    response: json({ metrics: { bandwidth: { used: 1245000 } }, available: true }),
   },
   gresiTargeting: {
     request: "GET /api/proxies/provider/targeting/gresi",
@@ -260,6 +287,12 @@ const endpointGroups = [
         ...examples.extendOrder,
       },
       {
+        method: "GET",
+        path: "/api/proxies/provider/order/{orderId}/whitelist",
+        description: "List whitelisted IPs",
+        ...examples.whitelistList,
+      },
+      {
         method: "PATCH",
         path: "/api/proxies/provider/order/{orderId}/whitelist",
         description: "Add whitelisted IP",
@@ -270,6 +303,30 @@ const endpointGroups = [
         path: "/api/proxies/provider/order/{orderId}/whitelist",
         description: "Remove whitelisted IP",
         ...examples.whitelistRemove,
+      },
+      {
+        method: "GET",
+        path: "/api/proxies/provider/order/{orderId}/usage-stats",
+        description: "Standard Residential usage analytics",
+        ...examples.usageStats,
+      },
+      {
+        method: "POST",
+        path: "/api/proxies/provider/order/{orderId}/reset-password",
+        description: "Rotate residential proxy password",
+        ...examples.resetPassword,
+      },
+      {
+        method: "GET",
+        path: "/api/proxies/provider/order/{orderId}/proxies",
+        description: "Static and Dedicated ISP proxy lines",
+        ...examples.orderProxies,
+      },
+      {
+        method: "GET",
+        path: "/api/proxies/provider/order/{orderId}/unlimited-metrics",
+        description: "Unlimited Residential metrics",
+        ...examples.unlimitedMetrics,
       },
     ],
   },
@@ -334,8 +391,13 @@ const explorerActions: Array<{ id: ExplorerAction; label: string }> = [
   { id: "orderDetails", label: "Order details" },
   { id: "extendOptions", label: "Extend options" },
   { id: "extendOrder", label: "Extend order" },
+  { id: "whitelistList", label: "List whitelist IPs" },
   { id: "whitelistAdd", label: "Add whitelist IP" },
   { id: "whitelistRemove", label: "Remove whitelist IP" },
+  { id: "usageStats", label: "Usage stats" },
+  { id: "resetPassword", label: "Reset password" },
+  { id: "orderProxies", label: "Order proxy lines" },
+  { id: "unlimitedMetrics", label: "Unlimited metrics" },
   { id: "gresiTargeting", label: "gResidential targeting" },
   { id: "mobileCountries", label: "Mobile countries" },
   { id: "mobileRegions", label: "Mobile regions" },
@@ -354,7 +416,7 @@ const parseBody = (value: string) => {
 
 export function SupportPanel({ token }: SupportPanelProps) {
   const [action, setAction] = useState<ExplorerAction>("account");
-  const [proxyType, setProxyType] = useState("Residential");
+  const [proxyType, setProxyType] = useState("gResidential");
   const [orderId, setOrderId] = useState("");
   const [countryId, setCountryId] = useState("1");
   const [regionId, setRegionId] = useState("");
@@ -413,6 +475,9 @@ export function SupportPanel({ token }: SupportPanelProps) {
         case "extendOrder":
           result = await api.providerExtendOrder(token, orderId, parseBody(body));
           break;
+        case "whitelistList":
+          result = await api.providerWhitelistIps(token, orderId);
+          break;
         case "whitelistAdd":
           result = await api.providerAddWhitelistIp(token, orderId, {
             ip: ip || "203.0.113.10",
@@ -421,6 +486,22 @@ export function SupportPanel({ token }: SupportPanelProps) {
         case "whitelistRemove":
           result = await api.providerRemoveWhitelistIp(token, orderId, {
             ip: ip || "203.0.113.10",
+          });
+          break;
+        case "usageStats":
+          result = await api.providerUsageStats(token, orderId);
+          break;
+        case "resetPassword":
+          result = await api.providerResetPassword(token, orderId);
+          break;
+        case "orderProxies":
+          result = await api.providerOrderProxies(token, orderId);
+          break;
+        case "unlimitedMetrics":
+          result = await api.providerUnlimitedMetrics(token, orderId, {
+            view: "overview",
+            timeframe: "1day",
+            interval: "1hour",
           });
           break;
         case "gresiTargeting":
@@ -561,12 +642,14 @@ export function SupportPanel({ token }: SupportPanelProps) {
               value={proxyType}
               onChange={(event) => setProxyType(event.target.value)}
             >
-              <option value="Residential">Residential</option>
-              <option value="Mobile">Mobile</option>
-              <option value="Datacenter">Datacenter</option>
+              <option value="gResidential">Standard Residential</option>
+              <option value="resix">Premium Residential</option>
+              <option value="UnlimitedResidential">Unlimited Residential</option>
+              <option value="RotatingMobile">Rotating Mobile</option>
               <option value="DatacenterP">DatacenterP</option>
-              <option value="Ipv6">IPv6</option>
-              <option value="Isp">ISP</option>
+              <option value="Ipv6p">IPv6</option>
+              <option value="Isp">Static ISP</option>
+              <option value="IspP">Dedicated ISP</option>
             </select>
           </label>
 

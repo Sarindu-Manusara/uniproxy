@@ -1,4 +1,10 @@
-import type { AdminUser, Profile, Transaction, UserProxy } from "./types";
+import type {
+  AdminUser,
+  Profile,
+  ProxyPurchaseResponse,
+  Transaction,
+  UserProxy,
+} from "./types";
 
 const fallbackBaseUrl = "http://localhost:8080";
 
@@ -95,11 +101,11 @@ export const api = {
   proxies: (token: string) =>
     request<UserProxy[]>("/api/proxies/my-list", { token }),
 
-  purchaseProxy: (token: string, price: string) =>
-    request<string>("/api/proxies/purchase", {
+  purchaseProxy: (token: string, body: unknown) =>
+    request<ProxyPurchaseResponse>("/api/proxies/purchase", {
       method: "POST",
       token,
-      query: { price },
+      body,
     }),
 
   providerAccount: (token: string) =>
@@ -165,6 +171,46 @@ export const api = {
         method: "DELETE",
         token,
         body,
+      }
+    ),
+
+  providerWhitelistIps: (token: string, orderId: string) =>
+    request<unknown>(
+      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/whitelist`,
+      { token }
+    ),
+
+  providerUsageStats: (token: string, orderId: string) =>
+    request<unknown>(
+      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/usage-stats`,
+      { token }
+    ),
+
+  providerResetPassword: (token: string, orderId: string) =>
+    request<unknown>(
+      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/reset-password`,
+      {
+        method: "POST",
+        token,
+      }
+    ),
+
+  providerOrderProxies: (token: string, orderId: string) =>
+    request<unknown>(
+      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/proxies`,
+      { token }
+    ),
+
+  providerUnlimitedMetrics: (
+    token: string,
+    orderId: string,
+    query?: Record<string, string | number>
+  ) =>
+    request<unknown>(
+      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/unlimited-metrics`,
+      {
+        token,
+        query,
       }
     ),
 
