@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @RestController
 @RequestMapping("/api/proxies")
@@ -62,129 +63,106 @@ public class ProxyController {
     }
 
     @GetMapping("/provider/account")
-    public Object providerAccount() {
-        return catProxiesApiService.getAccount();
+    public ResponseEntity<Object> providerAccount() {
+        return providerResponse(catProxiesApiService::getAccount);
     }
 
     @GetMapping("/provider/store")
-    public Object providerStore(@RequestParam(required = false) String proxyType) {
-        return catProxiesApiService.getStore(proxyType);
-    }
-
-    @GetMapping("/provider/servers")
-    public Object providerServers() {
-        return catProxiesApiService.getServers();
+    public ResponseEntity<Object> providerStore(@RequestParam(required = false) String proxyType) {
+        String normalizedProxyType = normalizeProviderProxyType(proxyType);
+        if (normalizedProxyType != null && !isResoldProviderProxyType(normalizedProxyType)) {
+            return ResponseEntity.badRequest().body("Only Datacenter and IPv6 provider store filters are available.");
+        }
+        return providerResponse(() -> catProxiesApiService.getStore(normalizedProxyType));
     }
 
     @GetMapping("/provider/datacenterp-countries")
-    public Object providerDatacenterCountries() {
-        return catProxiesApiService.getDatacenterCountries();
+    public ResponseEntity<Object> providerDatacenterCountries() {
+        return providerResponse(catProxiesApiService::getDatacenterCountries);
     }
 
     @GetMapping("/provider/orders")
-    public Object providerOrders() {
-        return catProxiesApiService.getOrders();
+    public ResponseEntity<Object> providerOrders() {
+        return providerResponse(catProxiesApiService::getOrders);
     }
 
     @PostMapping("/provider/order")
-    public Object providerCreateOrder(@RequestBody Map<String, Object> body) {
-        return catProxiesApiService.createOrder(body);
+    public ResponseEntity<Object> providerCreateOrder(@RequestBody Map<String, Object> body) {
+        return providerResponse(() -> catProxiesApiService.createOrder(body));
     }
 
     @GetMapping("/provider/order/{orderId}")
-    public Object providerOrder(@PathVariable String orderId) {
-        return catProxiesApiService.getOrder(orderId);
+    public ResponseEntity<Object> providerOrder(@PathVariable String orderId) {
+        return providerResponse(() -> catProxiesApiService.getOrder(orderId));
     }
 
     @GetMapping("/provider/order/{orderId}/extend-options")
-    public Object providerExtendOptions(@PathVariable String orderId) {
-        return catProxiesApiService.getExtendOptions(orderId);
+    public ResponseEntity<Object> providerExtendOptions(@PathVariable String orderId) {
+        return providerResponse(() -> catProxiesApiService.getExtendOptions(orderId));
     }
 
     @PostMapping("/provider/order/{orderId}/extend")
-    public Object providerExtendOrder(
+    public ResponseEntity<Object> providerExtendOrder(
             @PathVariable String orderId,
             @RequestBody(required = false) Map<String, Object> body
     ) {
-        return catProxiesApiService.extendOrder(orderId, body == null ? Map.of() : body);
+        return providerResponse(() -> catProxiesApiService.extendOrder(orderId, body == null ? Map.of() : body));
     }
 
     @GetMapping("/provider/order/{orderId}/whitelist")
-    public Object providerListWhitelistIps(@PathVariable String orderId) {
-        return catProxiesApiService.listWhitelistIps(orderId);
+    public ResponseEntity<Object> providerListWhitelistIps(@PathVariable String orderId) {
+        return providerResponse(() -> catProxiesApiService.listWhitelistIps(orderId));
     }
 
     @PatchMapping("/provider/order/{orderId}/whitelist")
-    public Object providerAddWhitelistIp(
+    public ResponseEntity<Object> providerAddWhitelistIp(
             @PathVariable String orderId,
             @RequestBody Map<String, Object> body
     ) {
-        return catProxiesApiService.addWhitelistIp(orderId, body);
+        return providerResponse(() -> catProxiesApiService.addWhitelistIp(orderId, body));
     }
 
     @DeleteMapping("/provider/order/{orderId}/whitelist")
-    public Object providerRemoveWhitelistIp(
+    public ResponseEntity<Object> providerRemoveWhitelistIp(
             @PathVariable String orderId,
             @RequestBody Map<String, Object> body
     ) {
-        return catProxiesApiService.removeWhitelistIp(orderId, body);
+        return providerResponse(() -> catProxiesApiService.removeWhitelistIp(orderId, body));
     }
 
     @GetMapping("/provider/order/{orderId}/usage-stats")
-    public Object providerUsageStats(@PathVariable String orderId) {
-        return catProxiesApiService.getUsageStats(orderId);
+    public ResponseEntity<Object> providerUsageStats(@PathVariable String orderId) {
+        return providerResponse(() -> catProxiesApiService.getUsageStats(orderId));
     }
 
     @PostMapping("/provider/order/{orderId}/reset-password")
-    public Object providerResetPassword(@PathVariable String orderId) {
-        return catProxiesApiService.resetPassword(orderId);
+    public ResponseEntity<Object> providerResetPassword(@PathVariable String orderId) {
+        return providerResponse(() -> catProxiesApiService.resetPassword(orderId));
     }
 
-    @GetMapping("/provider/order/{orderId}/proxies")
-    public Object providerOrderProxies(@PathVariable String orderId) {
-        return catProxiesApiService.getOrderProxies(orderId);
+    private ResponseEntity<Object> providerResponse(Supplier<Object> request) {
+        try {
+            return ResponseEntity.ok(request.get());
+        } catch (IllegalStateException error) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error.getMessage());
+        } catch (RuntimeException error) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error.getMessage());
+        }
     }
 
-    @GetMapping("/provider/order/{orderId}/unlimited-metrics")
-    public Object providerUnlimitedMetrics(
-            @PathVariable String orderId,
-            @RequestParam(required = false) String view,
-            @RequestParam(required = false) String timeframe,
-            @RequestParam(required = false) String interval,
-            @RequestParam(required = false) Integer page
-    ) {
-        return catProxiesApiService.getUnlimitedMetrics(orderId, view, timeframe, interval, page);
+    private String normalizeProviderProxyType(String proxyType) {
+        if (proxyType == null || proxyType.isBlank()) {
+            return null;
+        }
+
+        return switch (proxyType.toLowerCase()) {
+            case "datacenter", "datacenterp" -> "DatacenterP";
+            case "ipv6", "ipv6p" -> "Ipv6p";
+            default -> proxyType;
+        };
     }
 
-    @GetMapping("/provider/targeting/gresi")
-    public Object providerGresiTargeting() {
-        return catProxiesApiService.getGresiTargetingOptions();
-    }
-
-    @GetMapping("/provider/targeting/mobile/countries")
-    public Object providerMobileCountries() {
-        return catProxiesApiService.getMobileCountries();
-    }
-
-    @GetMapping("/provider/targeting/mobile/regions")
-    public Object providerMobileRegions(@RequestParam(required = false) String countryId) {
-        return catProxiesApiService.getMobileRegions(countryId);
-    }
-
-    @GetMapping("/provider/targeting/mobile/cities")
-    public Object providerMobileCities(
-            @RequestParam(required = false) String countryId,
-            @RequestParam(required = false) String regionId
-    ) {
-        return catProxiesApiService.getMobileCities(countryId, regionId);
-    }
-
-    @GetMapping("/provider/targeting/mobile/isps")
-    public Object providerMobileIsps(
-            @RequestParam(required = false) String countryId,
-            @RequestParam(required = false) String regionId,
-            @RequestParam(required = false) String cityId
-    ) {
-        return catProxiesApiService.getMobileIsps(countryId, regionId, cityId);
+    private boolean isResoldProviderProxyType(String proxyType) {
+        return "DatacenterP".equals(proxyType) || "Ipv6p".equals(proxyType);
     }
 }

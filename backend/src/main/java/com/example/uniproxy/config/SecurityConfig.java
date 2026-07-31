@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/api/health", "/api/auth/**", "/api/payments/webhook").permitAll()
+                        .requestMatchers("/error", "/api/health", "/api/auth/**", "/api/payments/webhook").permitAll()
 
                         // Admin only endpoints
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
@@ -60,7 +60,7 @@ public class SecurityConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins(allowedOrigins())
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
             }

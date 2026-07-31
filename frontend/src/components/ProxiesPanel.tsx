@@ -27,7 +27,7 @@ type ProxiesPanelProps = {
   viewMode?: "active" | "purchase" | "all";
 };
 
-type PlanCategory = "residential" | "mobile" | "datacenter" | "ipv6" | "isp";
+type PlanCategory = "datacenter" | "ipv6";
 type PlanTier = "standard" | "premium" | "unlimited";
 type PaymentMethod = "Balance" | "Crypto" | "Card";
 
@@ -56,11 +56,8 @@ type CountryOption = {
 };
 
 const categoryTabs: Array<{ id: PlanCategory; label: string; badge?: string }> = [
-  { id: "residential", label: "Residential" },
-  { id: "mobile", label: "Mobile", badge: "NEW" },
   { id: "datacenter", label: "Datacenter" },
   { id: "ipv6", label: "IPv6" },
-  { id: "isp", label: "ISP" },
 ];
 
 const tierTabs: Array<{ id: PlanTier; label: string }> = [
@@ -84,28 +81,6 @@ const categoryContent: Record<
   PlanCategory,
   { title: string; copy: string; features: string[] }
 > = {
-  residential: {
-    title: "Residential Proxies",
-    copy:
-      "Real-device IPs for clean browsing, scraping, account workflows, and high-trust sessions.",
-    features: [
-      "Rotating and sticky sessions",
-      "Country, state, city, and ISP targeting",
-      "HTTP and SOCKS5 access",
-      "Username and password authentication",
-    ],
-  },
-  mobile: {
-    title: "Mobile Proxies",
-    copy:
-      "Carrier-grade 4G/5G routes for social, app, ad verification, and mobile-only testing.",
-    features: [
-      "Real mobile carrier identity",
-      "Country, region, city, and ISP targeting",
-      "Sticky or rotating sessions",
-      "Low reputation risk profiles",
-    ],
-  },
   datacenter: {
     title: "Datacenter Proxies",
     copy:
@@ -128,40 +103,9 @@ const categoryContent: Record<
       "HTTP and SOCKS5 access",
     ],
   },
-  isp: {
-    title: "ISP Proxies",
-    copy:
-      "Static residential-quality ISP routes for stable accounts, browsing, and long-running sessions.",
-    features: [
-      "Static ISP IPs",
-      "Real consumer-network routing",
-      "Unlimited bandwidth",
-      "Extendable monthly access",
-    ],
-  },
 };
 
 const baseFeatures = {
-  residential: [
-    "20M+ residential IP pool",
-    "Country targeting included",
-    "Rotating and sticky sessions",
-  ],
-  premiumResidential: [
-    "Premium clean residential routes",
-    "City and ISP targeting",
-    "Priority pool allocation",
-  ],
-  unlimitedResidential: [
-    "Unlimited bandwidth",
-    "Gateway server selection",
-    "Rotating and static sessions",
-  ],
-  mobile: [
-    "4G/5G carrier routes",
-    "Sticky sessions",
-    "HTTP and SOCKS5 access",
-  ],
   datacenter: [
     "Fast datacenter pool",
     "IP whitelist authentication",
@@ -172,145 +116,9 @@ const baseFeatures = {
     "Static sessions available",
     "Country-level targeting",
   ],
-  isp: [
-    "Static ISP identity",
-    "30 day access",
-    "Unlimited bandwidth",
-  ],
 };
 
 const buildPlans = (): ProxyPlan[] => {
-  const residentialStandard = [
-    [1, 2.5],
-    [5, 10],
-    [10, 18],
-    [25, 40],
-    [50, 75],
-    [100, 140],
-    [250, 315],
-  ].map(([gb, price]) => ({
-    id: `residential-standard-${gb}gb`,
-    category: "residential" as const,
-    tier: "standard" as const,
-    name: `Standard Residential ${gb}GB`,
-    price,
-    term: "3 Months",
-    unit: "GB",
-    quantity: gb,
-    description: "Balanced residential bandwidth for general proxy work.",
-    features: baseFeatures.residential,
-    providerProxyType: "gResidential",
-    requiresCountry: true,
-  }));
-
-  const residentialPremium = [
-    [1, 3.5],
-    [5, 15],
-    [10, 27],
-    [25, 60],
-    [50, 110],
-    [100, 200],
-    [250, 460],
-  ].map(([gb, price]) => ({
-    id: `residential-premium-${gb}gb`,
-    category: "residential" as const,
-    tier: "premium" as const,
-    name: `Premium Residential ${gb}GB`,
-    price,
-    term: "3 Months",
-    unit: "GB",
-    quantity: gb,
-    description: "Higher trust residential bandwidth for stricter targets.",
-    features: baseFeatures.premiumResidential,
-    providerProxyType: "resix",
-    requiresCountry: true,
-    popular: gb === 50,
-  }));
-
-  const residentialUnlimited = [
-    ["1 Day", 14, 1],
-    ["1 Week", 39, 7],
-    ["1 Month", 119, 30],
-    ["3 Months", 319, 90],
-  ].map(([label, price, days]) => ({
-    id: `residential-unlimited-${String(label).toLowerCase().replace(/\s+/g, "-")}`,
-    category: "residential" as const,
-    tier: "unlimited" as const,
-    name: `Unlimited Residential ${label}`,
-    price: Number(price),
-    term: String(label),
-    unit: "Plan",
-    quantity: Number(days),
-    description: "Unlimited residential gateway access for long-running work.",
-    features: baseFeatures.unlimitedResidential,
-    providerProxyType: "UnlimitedResidential",
-    requiresCountry: true,
-    popular: label === "1 Month",
-  }));
-
-  const mobileStandard = [
-    [1, 8],
-    [3, 22],
-    [5, 35],
-    [10, 65],
-    [25, 150],
-    [50, 280],
-  ].map(([gb, price]) => ({
-    id: `mobile-standard-${gb}gb`,
-    category: "mobile" as const,
-    tier: "standard" as const,
-    name: `Mobile ${gb}GB`,
-    price,
-    term: "3 Months",
-    unit: "GB",
-    quantity: gb,
-    description: "Mobile carrier bandwidth for testing and verification.",
-    features: baseFeatures.mobile,
-    providerProxyType: "RotatingMobile",
-    requiresCountry: true,
-  }));
-
-  const mobilePremium = [
-    [1, 12],
-    [3, 33],
-    [5, 52],
-    [10, 95],
-    [25, 220],
-  ].map(([gb, price]) => ({
-    id: `mobile-premium-${gb}gb`,
-    category: "mobile" as const,
-    tier: "premium" as const,
-    name: `Premium Mobile ${gb}GB`,
-    price,
-    term: "3 Months",
-    unit: "GB",
-    quantity: gb,
-    description: "Priority mobile bandwidth with better carrier quality.",
-    features: [...baseFeatures.mobile, "Priority mobile pool"],
-    providerProxyType: "RotatingMobile",
-    requiresCountry: true,
-    popular: gb === 10,
-  }));
-
-  const mobileUnlimited = [
-    ["1 Day", 25, 1],
-    ["1 Week", 120, 7],
-    ["1 Month", 399, 30],
-  ].map(([label, price, days]) => ({
-    id: `mobile-unlimited-${String(label).toLowerCase().replace(/\s+/g, "-")}`,
-    category: "mobile" as const,
-    tier: "unlimited" as const,
-    name: `Unlimited Mobile ${label}`,
-    price: Number(price),
-    term: String(label),
-    unit: "Plan",
-    quantity: Number(days),
-    description: "Unlimited rotating mobile access for intensive workflows.",
-    features: [...baseFeatures.mobile, "Unlimited bandwidth"],
-    providerProxyType: "RotatingMobile",
-    requiresCountry: true,
-  }));
-
   const datacenterStandard = [
     [10, 10],
     [25, 22],
@@ -330,6 +138,7 @@ const buildPlans = (): ProxyPlan[] => {
     description: "Fast datacenter IPs for automation and browser profiles.",
     features: baseFeatures.datacenter,
     providerProxyType: "DatacenterP",
+    requiresCountry: true,
     adjustableQuantity: true,
   }));
 
@@ -367,11 +176,13 @@ const buildPlans = (): ProxyPlan[] => {
     name: `Unlimited Datacenter ${label}`,
     price: Number(price),
     term: String(label),
-    unit: "Plan",
+    unit: "IPs",
     quantity: 1,
-    description: "Rotating datacenter gateway with unlimited traffic.",
+    description: "Datacenter allocation for unlimited traffic workflows.",
     features: [...baseFeatures.datacenter, "Unlimited traffic"],
     providerProxyType: "DatacenterP",
+    requiresCountry: true,
+    adjustableQuantity: true,
   }));
 
   const ipv6Standard = [
@@ -392,7 +203,7 @@ const buildPlans = (): ProxyPlan[] => {
     description: "IPv6 proxy pack for modern automation tools.",
     features: baseFeatures.ipv6,
     providerProxyType: "Ipv6p",
-    requiresCountry: true,
+    requiresCountry: false,
   }));
 
   const ipv6Premium = [
@@ -412,7 +223,7 @@ const buildPlans = (): ProxyPlan[] => {
     description: "Premium IPv6 routes with cleaner subnet allocation.",
     features: [...baseFeatures.ipv6, "Priority subnet allocation"],
     providerProxyType: "Ipv6p",
-    requiresCountry: true,
+    requiresCountry: false,
   }));
 
   const ipv6Unlimited = [
@@ -431,91 +242,16 @@ const buildPlans = (): ProxyPlan[] => {
     description: "Unlimited IPv6 gateway plan for large-scale workflows.",
     features: [...baseFeatures.ipv6, "Unlimited sessions"],
     providerProxyType: "Ipv6p",
-    requiresCountry: true,
-  }));
-
-  const ispStandard = [
-    [5, 17.5],
-    [10, 32],
-    [25, 75],
-    [50, 140],
-    [100, 260],
-  ].map(([ips, price]) => ({
-    id: `isp-standard-${ips}`,
-    category: "isp" as const,
-    tier: "standard" as const,
-    name: `ISP ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "Static ISP proxies for stable sessions.",
-    features: baseFeatures.isp,
-    providerProxyType: "Isp",
-    requiresCountry: true,
-    adjustableQuantity: true,
-  }));
-
-  const ispPremium = [
-    [5, 25],
-    [10, 46],
-    [25, 110],
-    [50, 205],
-    [100, 390],
-  ].map(([ips, price]) => ({
-    id: `isp-premium-${ips}`,
-    category: "isp" as const,
-    tier: "premium" as const,
-    name: `Premium ISP ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "Cleaner ISP allocation for accounts and long-lived sessions.",
-    features: [...baseFeatures.isp, "Premium ISP pool"],
-    providerProxyType: "IspP",
     requiresCountry: false,
-    adjustableQuantity: true,
-    popular: ips === 25,
-  }));
-
-  const ispUnlimited = [
-    [1, 9],
-    [5, 40],
-    [10, 75],
-    [25, 175],
-  ].map(([ips, price]) => ({
-    id: `isp-unlimited-${ips}`,
-    category: "isp" as const,
-    tier: "unlimited" as const,
-    name: `Unlimited ISP ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "Static ISP proxies with unlimited bandwidth.",
-    features: [...baseFeatures.isp, "Unlimited bandwidth"],
-    providerProxyType: "IspP",
-    requiresCountry: false,
-    adjustableQuantity: true,
   }));
 
   return [
-    ...residentialStandard,
-    ...residentialPremium,
-    ...residentialUnlimited,
-    ...mobileStandard,
-    ...mobilePremium,
-    ...mobileUnlimited,
     ...datacenterStandard,
     ...datacenterPremium,
     ...datacenterUnlimited,
     ...ipv6Standard,
     ...ipv6Premium,
     ...ipv6Unlimited,
-    ...ispStandard,
-    ...ispPremium,
-    ...ispUnlimited,
   ];
 };
 
@@ -529,21 +265,10 @@ const toNumber = (value: unknown, fallback = 0) => {
 const toTitle = (value: unknown) =>
   typeof value === "string" && value.trim() ? value.trim() : "";
 
-const providerProxyTypeFor = (
-  category: PlanCategory,
-  tier: PlanTier = "standard"
-) => {
-  if (category === "residential") {
-    if (tier === "premium") return "resix";
-    if (tier === "unlimited") return "UnlimitedResidential";
-    return "gResidential";
-  }
-
-  if (category === "mobile") return "RotatingMobile";
+const providerProxyTypeFor = (category: PlanCategory) => {
   if (category === "datacenter") return "DatacenterP";
   if (category === "ipv6") return "Ipv6p";
-  if (category === "isp") return tier === "premium" ? "IspP" : "Isp";
-  return "gResidential";
+  return "DatacenterP";
 };
 
 const unwrapArray = (value: unknown): unknown[] => {
@@ -577,20 +302,18 @@ const unwrapArray = (value: unknown): unknown[] => {
   return [];
 };
 
-const inferCategory = (input: string): PlanCategory => {
+const inferCategory = (input: string): PlanCategory | null => {
   const text = input.toLowerCase();
 
-  if (text.includes("rotatingmobile") || text.includes("mobile")) return "mobile";
   if (text.includes("datacenterp") || text.includes("datacenter")) return "datacenter";
   if (text.includes("ipv6p") || text.includes("ipv6")) return "ipv6";
-  if (text.includes("ispp") || text.includes("isp")) return "isp";
-  return "residential";
+  return null;
 };
 
 const inferTier = (input: string): PlanTier => {
   const text = input.toLowerCase();
 
-  if (text.includes("resix") || text.includes("ispp") || text.includes("premium") || text.includes("resi bd") || text.includes("resibd")) {
+  if (text.includes("premium")) {
     return "premium";
   }
 
@@ -620,14 +343,21 @@ const parseProviderPlan = (item: unknown): ProxyPlan | null => {
   }
 
   const category = inferCategory(`${proxyType} ${title}`);
+  if (!category) {
+    return null;
+  }
   const tier = inferTier(`${proxyType} ${title}`);
-  const quantity =
+  const bandwidth =
     toNumber(record.bandwidthGb) ||
     toNumber(record.bandwidth) ||
-    toNumber(record.traffic) ||
+    toNumber(record.traffic);
+  const ips =
     toNumber(record.ips) ||
-    toNumber(record.quantity) ||
-    1;
+    toNumber(record.ipCount) ||
+    toNumber(record.quantity);
+  const speed = toNumber(record.speed) || toNumber(record.speedMbps);
+  const quantity = category === "datacenter" ? ips || bandwidth || 1 : bandwidth || speed || 1;
+  const unit = category === "datacenter" ? "IPs" : bandwidth ? "GB" : speed ? "Mbps" : "Plan";
   const price =
     toNumber(record.resellerPrice) ||
     toNumber(record.price) ||
@@ -641,7 +371,7 @@ const parseProviderPlan = (item: unknown): ProxyPlan | null => {
     name: title,
     price,
     term: toTitle(record.period) || toTitle(record.duration) || "Provider term",
-    unit: category === "residential" || category === "mobile" ? "GB" : "IPs",
+    unit,
     quantity,
     description: "Live provider product from the configured reseller API.",
     features: [
@@ -649,10 +379,10 @@ const parseProviderPlan = (item: unknown): ProxyPlan | null => {
       "Server-side API key protection",
       "Provider order endpoint ready",
     ],
-    providerProxyType: proxyType || providerProxyTypeFor(category, tier),
+    providerProxyType: proxyType || providerProxyTypeFor(category),
     providerPackageId: id || undefined,
-    requiresCountry: proxyType === "Isp" || (category !== "datacenter" && proxyType !== "IspP"),
-    adjustableQuantity: category === "isp" || category === "datacenter",
+    requiresCountry: category === "datacenter",
+    adjustableQuantity: category === "datacenter",
   };
 };
 
@@ -669,7 +399,7 @@ export function ProxiesPanel({
   const [proxies, setProxies] = useState<UserProxy[]>([]);
   const [providerPlans, setProviderPlans] = useState<ProxyPlan[]>([]);
   const [activeCategory, setActiveCategory] =
-    useState<PlanCategory>("residential");
+    useState<PlanCategory>("datacenter");
   const [activeTier, setActiveTier] = useState<PlanTier>("standard");
   const [selectedPlanId, setSelectedPlanId] = useState(fallbackPlans[0].id);
   const [checkoutPlan, setCheckoutPlan] = useState<ProxyPlan | null>(null);
@@ -722,7 +452,7 @@ export function ProxiesPanel({
     setProviderLoading(true);
 
     try {
-      const proxyType = providerProxyTypeFor(activeCategory, activeTier);
+      const proxyType = providerProxyTypeFor(activeCategory);
       const response = await api.providerStore(token, proxyType);
       const parsed = unwrapArray(response)
         .map(parseProviderPlan)
@@ -750,7 +480,7 @@ export function ProxiesPanel({
     } finally {
       setProviderLoading(false);
     }
-  }, [activeCategory, activeTier, toast, token]);
+  }, [activeCategory, toast, token]);
 
   useEffect(() => {
     refresh();

@@ -117,9 +117,6 @@ export const api = {
       query: proxyType ? { proxyType } : undefined,
     }),
 
-  providerServers: (token: string) =>
-    request<unknown>("/api/proxies/provider/servers", { token }),
-
   providerDatacenterCountries: (token: string) =>
     request<unknown>("/api/proxies/provider/datacenterp-countries", { token }),
 
@@ -194,61 +191,6 @@ export const api = {
         token,
       }
     ),
-
-  providerOrderProxies: (token: string, orderId: string) =>
-    request<unknown>(
-      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/proxies`,
-      { token }
-    ),
-
-  providerUnlimitedMetrics: (
-    token: string,
-    orderId: string,
-    query?: Record<string, string | number>
-  ) =>
-    request<unknown>(
-      `/api/proxies/provider/order/${encodeURIComponent(orderId)}/unlimited-metrics`,
-      {
-        token,
-        query,
-      }
-    ),
-
-  providerGresiTargeting: (token: string) =>
-    request<unknown>("/api/proxies/provider/targeting/gresi", { token }),
-
-  providerMobileCountries: (token: string) =>
-    request<unknown>("/api/proxies/provider/targeting/mobile/countries", { token }),
-
-  providerMobileRegions: (token: string, countryId?: string) =>
-    request<unknown>("/api/proxies/provider/targeting/mobile/regions", {
-      token,
-      query: countryId ? { countryId } : undefined,
-    }),
-
-  providerMobileCities: (token: string, countryId?: string, regionId?: string) =>
-    request<unknown>("/api/proxies/provider/targeting/mobile/cities", {
-      token,
-      query: {
-        ...(countryId ? { countryId } : {}),
-        ...(regionId ? { regionId } : {}),
-      },
-    }),
-
-  providerMobileIsps: (
-    token: string,
-    countryId?: string,
-    regionId?: string,
-    cityId?: string
-  ) =>
-    request<unknown>("/api/proxies/provider/targeting/mobile/isps", {
-      token,
-      query: {
-        ...(countryId ? { countryId } : {}),
-        ...(regionId ? { regionId } : {}),
-        ...(cityId ? { cityId } : {}),
-      },
-    }),
 
   createPayment: (token: string, amount: string) =>
     request<string>("/api/payments/create", {

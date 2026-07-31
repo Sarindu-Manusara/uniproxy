@@ -38,12 +38,19 @@ public class ProxyService {
         }
 
         String requestedProxyType = normalizeProxyType(firstString(request, "proxyType", "providerProxyType"));
+        if (requestedProxyType != null && !isResoldProxyType(requestedProxyType)) {
+            throw new IllegalArgumentException("Only Datacenter and IPv6 plans are available for resale.");
+        }
+
         Map<String, Object> product = findStoreProduct(packageId, requestedProxyType);
         String proxyType = normalizeProxyType(
                 firstString(product, "proxyType", "type", "category") != null
                         ? firstString(product, "proxyType", "type", "category")
                         : requestedProxyType
         );
+        if (!isResoldProxyType(proxyType)) {
+            throw new IllegalArgumentException("Only Datacenter and IPv6 plans are available for resale.");
+        }
 
         BigDecimal chargeAmount = resolveChargeAmount(product, request, proxyType);
         BigDecimal currentBalance = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
@@ -611,6 +618,10 @@ public class ProxyService {
 
     private boolean isIsp(String proxyType) {
         return Objects.equals(proxyType, "Isp") || Objects.equals(proxyType, "IspP");
+    }
+
+    private boolean isResoldProxyType(String proxyType) {
+        return Objects.equals(proxyType, "DatacenterP") || Objects.equals(proxyType, "Ipv6p");
     }
 
     private int defaultPort(String proxyType) {

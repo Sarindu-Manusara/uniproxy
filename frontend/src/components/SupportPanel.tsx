@@ -11,7 +11,6 @@ import {
   ListOrdered,
   PackageSearch,
   ShieldCheck,
-  Target,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "./ToastProvider";
@@ -31,7 +30,6 @@ type SupportPanelProps = {
 type ExplorerAction =
   | "account"
   | "store"
-  | "servers"
   | "datacenterCountries"
   | "orders"
   | "createOrder"
@@ -42,14 +40,7 @@ type ExplorerAction =
   | "whitelistAdd"
   | "whitelistRemove"
   | "usageStats"
-  | "resetPassword"
-  | "orderProxies"
-  | "unlimitedMetrics"
-  | "gresiTargeting"
-  | "mobileCountries"
-  | "mobileRegions"
-  | "mobileCities"
-  | "mobileIsps";
+  | "resetPassword";
 
 const json = (value: unknown) => JSON.stringify(value, null, 2);
 
@@ -69,23 +60,24 @@ const examples: Record<string, Pick<EndpointDoc, "request" | "response">> = {
     }),
   },
   store: {
-    request: "GET /api/proxies/provider/store?proxyType=gResidential",
+    request: "GET /api/proxies/provider/store?proxyType=DatacenterP",
     response: json([
       {
-        id: "pkg_resi_10gb",
-        name: "Residential 10GB",
-        proxyType: "Residential",
+        id: "pkg_datacenter_100ip",
+        name: "Datacenter 100 IPs",
+        proxyType: "DatacenterP",
         resellerPrice: 25,
-        bandwidthGb: 10,
-        locations: [{ id: 1, country: "United States", code: "US" }],
+        ips: 100,
+        bandwidth: 250,
       },
-    ]),
-  },
-  servers: {
-    request: "GET /api/proxies/provider/servers",
-    response: json([
-      { id: 1, hostname: "gw-us.unlimited.example", country: "US" },
-      { id: 2, hostname: "gw-eu.unlimited.example", country: "DE" },
+      {
+        id: "pkg_ipv6_30d",
+        name: "IPv6 30 days",
+        proxyType: "Ipv6p",
+        resellerPrice: 12,
+        bandwidth: 0,
+        speed: 100,
+      },
     ]),
   },
   datacenterCountries: {
@@ -100,7 +92,7 @@ const examples: Record<string, Pick<EndpointDoc, "request" | "response">> = {
     response: json([
       {
         id: "ord_12345",
-        packageName: "Residential 10GB",
+        packageName: "Datacenter 100 IPs",
         status: "active",
         expiresAt: "2026-06-28T12:00:00.000Z",
       },
@@ -111,10 +103,16 @@ const examples: Record<string, Pick<EndpointDoc, "request" | "response">> = {
 Content-Type: application/json
 
 ${json({
-  packageId: "pkg_isp_30d",
-  ispData: {
-    quantity: 5,
-    countryId: 1,
+  packageId: "pkg_datacenter_100ip",
+  datacenterPData: {
+    country_proxies: {
+      US: 60,
+      DE: 20,
+      GB: 20,
+    },
+    high_concurrency: false,
+    high_priority: false,
+    whitelisted_ips: false,
   },
 })}`,
     response: json({
@@ -131,8 +129,8 @@ ${json({
       status: "active",
       credentials: [
         {
-          host: "proxy.example.com",
-          port: 9000,
+          host: "203.0.113.25",
+          port: 1338,
           username: "user-session",
           password: "pass",
         },
@@ -179,40 +177,6 @@ ${json({ ip: "203.0.113.10" })}`,
     request: "POST /api/proxies/provider/order/ord_67890/reset-password",
     response: json({ status: "success", password: "new-password" }),
   },
-  orderProxies: {
-    request: "GET /api/proxies/provider/order/ord_67890/proxies",
-    response: json([
-      { host: "203.0.113.25", port: 1338, login: "line-user", password: "line-pass" },
-    ]),
-  },
-  unlimitedMetrics: {
-    request: "GET /api/proxies/provider/order/ord_67890/unlimited-metrics?view=overview",
-    response: json({ metrics: { bandwidth: { used: 1245000 } }, available: true }),
-  },
-  gresiTargeting: {
-    request: "GET /api/proxies/provider/targeting/gresi",
-    response: json({
-      countries: [{ id: 1, name: "United States", code: "US" }],
-      regions: [{ id: 12, name: "California", countryId: 1 }],
-      cities: [{ id: 99, name: "Los Angeles", regionId: 12 }],
-    }),
-  },
-  mobileCountries: {
-    request: "GET /api/proxies/provider/targeting/mobile/countries",
-    response: json([{ id: 1, name: "United States", code: "US" }]),
-  },
-  mobileRegions: {
-    request: "GET /api/proxies/provider/targeting/mobile/regions?countryId=1",
-    response: json([{ id: 12, name: "California", countryId: 1 }]),
-  },
-  mobileCities: {
-    request: "GET /api/proxies/provider/targeting/mobile/cities?countryId=1&regionId=12",
-    response: json([{ id: 99, name: "Los Angeles", regionId: 12 }]),
-  },
-  mobileIsps: {
-    request: "GET /api/proxies/provider/targeting/mobile/isps?countryId=1&regionId=12&cityId=99",
-    response: json([{ id: 7, name: "T-Mobile", cityId: 99 }]),
-  },
 };
 
 const endpointGroups = [
@@ -235,14 +199,8 @@ const endpointGroups = [
       {
         method: "GET",
         path: "/api/proxies/provider/store",
-        description: "List available proxy products",
+        description: "List DatacenterP or Ipv6p products",
         ...examples.store,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/servers",
-        description: "Unlimited Residential gateway servers",
-        ...examples.servers,
       },
       {
         method: "GET",
@@ -307,62 +265,14 @@ const endpointGroups = [
       {
         method: "GET",
         path: "/api/proxies/provider/order/{orderId}/usage-stats",
-        description: "Standard Residential usage analytics",
+        description: "Provider usage analytics",
         ...examples.usageStats,
       },
       {
         method: "POST",
         path: "/api/proxies/provider/order/{orderId}/reset-password",
-        description: "Rotate residential proxy password",
+        description: "Rotate order password",
         ...examples.resetPassword,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/order/{orderId}/proxies",
-        description: "Static and Dedicated ISP proxy lines",
-        ...examples.orderProxies,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/order/{orderId}/unlimited-metrics",
-        description: "Unlimited Residential metrics",
-        ...examples.unlimitedMetrics,
-      },
-    ],
-  },
-  {
-    title: "Targeting",
-    icon: Target,
-    endpoints: [
-      {
-        method: "GET",
-        path: "/api/proxies/provider/targeting/gresi",
-        description: "gResidential targeting options",
-        ...examples.gresiTargeting,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/targeting/mobile/countries",
-        description: "Mobile countries",
-        ...examples.mobileCountries,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/targeting/mobile/regions",
-        description: "Mobile regions",
-        ...examples.mobileRegions,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/targeting/mobile/cities",
-        description: "Mobile cities",
-        ...examples.mobileCities,
-      },
-      {
-        method: "GET",
-        path: "/api/proxies/provider/targeting/mobile/isps",
-        description: "Mobile ISPs",
-        ...examples.mobileIsps,
       },
     ],
   },
@@ -384,7 +294,6 @@ const errorCodes = [
 const explorerActions: Array<{ id: ExplorerAction; label: string }> = [
   { id: "account", label: "Account" },
   { id: "store", label: "Store" },
-  { id: "servers", label: "Servers" },
   { id: "datacenterCountries", label: "DatacenterP countries" },
   { id: "orders", label: "Orders" },
   { id: "createOrder", label: "Create order" },
@@ -396,13 +305,6 @@ const explorerActions: Array<{ id: ExplorerAction; label: string }> = [
   { id: "whitelistRemove", label: "Remove whitelist IP" },
   { id: "usageStats", label: "Usage stats" },
   { id: "resetPassword", label: "Reset password" },
-  { id: "orderProxies", label: "Order proxy lines" },
-  { id: "unlimitedMetrics", label: "Unlimited metrics" },
-  { id: "gresiTargeting", label: "gResidential targeting" },
-  { id: "mobileCountries", label: "Mobile countries" },
-  { id: "mobileRegions", label: "Mobile regions" },
-  { id: "mobileCities", label: "Mobile cities" },
-  { id: "mobileIsps", label: "Mobile ISPs" },
 ];
 
 const parseBody = (value: string) => {
@@ -416,18 +318,19 @@ const parseBody = (value: string) => {
 
 export function SupportPanel({ token }: SupportPanelProps) {
   const [action, setAction] = useState<ExplorerAction>("account");
-  const [proxyType, setProxyType] = useState("gResidential");
+  const [proxyType, setProxyType] = useState("DatacenterP");
   const [orderId, setOrderId] = useState("");
-  const [countryId, setCountryId] = useState("1");
-  const [regionId, setRegionId] = useState("");
-  const [cityId, setCityId] = useState("");
   const [ip, setIp] = useState("");
   const [body, setBody] = useState(
     json({
       packageId: "package_id_here",
-      ispData: {
-        quantity: 5,
-        countryId: 1,
+      datacenterPData: {
+        country_proxies: {
+          US: 10,
+        },
+        high_concurrency: false,
+        high_priority: false,
+        whitelisted_ips: false,
       },
     })
   );
@@ -453,9 +356,6 @@ export function SupportPanel({ token }: SupportPanelProps) {
           break;
         case "store":
           result = await api.providerStore(token, proxyType || undefined);
-          break;
-        case "servers":
-          result = await api.providerServers(token);
           break;
         case "datacenterCountries":
           result = await api.providerDatacenterCountries(token);
@@ -493,36 +393,6 @@ export function SupportPanel({ token }: SupportPanelProps) {
           break;
         case "resetPassword":
           result = await api.providerResetPassword(token, orderId);
-          break;
-        case "orderProxies":
-          result = await api.providerOrderProxies(token, orderId);
-          break;
-        case "unlimitedMetrics":
-          result = await api.providerUnlimitedMetrics(token, orderId, {
-            view: "overview",
-            timeframe: "1day",
-            interval: "1hour",
-          });
-          break;
-        case "gresiTargeting":
-          result = await api.providerGresiTargeting(token);
-          break;
-        case "mobileCountries":
-          result = await api.providerMobileCountries(token);
-          break;
-        case "mobileRegions":
-          result = await api.providerMobileRegions(token, countryId);
-          break;
-        case "mobileCities":
-          result = await api.providerMobileCities(token, countryId, regionId);
-          break;
-        case "mobileIsps":
-          result = await api.providerMobileIsps(
-            token,
-            countryId,
-            regionId,
-            cityId
-          );
           break;
         default:
           result = null;
@@ -564,8 +434,8 @@ export function SupportPanel({ token }: SupportPanelProps) {
             <span>requests/hour</span>
           </div>
           <div>
-            <strong>60</strong>
-            <span>mobile targeting requests / 10 min</span>
+            <strong>2</strong>
+            <span>resold proxy types</span>
           </div>
         </div>
       </div>
@@ -642,14 +512,8 @@ export function SupportPanel({ token }: SupportPanelProps) {
               value={proxyType}
               onChange={(event) => setProxyType(event.target.value)}
             >
-              <option value="gResidential">Standard Residential</option>
-              <option value="resix">Premium Residential</option>
-              <option value="UnlimitedResidential">Unlimited Residential</option>
-              <option value="RotatingMobile">Rotating Mobile</option>
               <option value="DatacenterP">DatacenterP</option>
               <option value="Ipv6p">IPv6</option>
-              <option value="Isp">Static ISP</option>
-              <option value="IspP">Dedicated ISP</option>
             </select>
           </label>
 
@@ -659,33 +523,6 @@ export function SupportPanel({ token }: SupportPanelProps) {
               value={orderId}
               onChange={(event) => setOrderId(event.target.value)}
               placeholder="ord_..."
-            />
-          </label>
-
-          <label>
-            Country ID
-            <input
-              value={countryId}
-              onChange={(event) => setCountryId(event.target.value)}
-              placeholder="1"
-            />
-          </label>
-
-          <label>
-            Region ID
-            <input
-              value={regionId}
-              onChange={(event) => setRegionId(event.target.value)}
-              placeholder="Optional"
-            />
-          </label>
-
-          <label>
-            City ID
-            <input
-              value={cityId}
-              onChange={(event) => setCityId(event.target.value)}
-              placeholder="Optional"
             />
           </label>
 
@@ -760,14 +597,16 @@ export function SupportPanel({ token }: SupportPanelProps) {
         <article>
           <div>
             <Code2 aria-hidden="true" size={22} />
-            <h2>Create ISP order</h2>
+            <h2>Create Datacenter order</h2>
           </div>
           <pre>{`POST /api/proxies/provider/order
 {
   "packageId": "package_id_here",
-  "ispData": {
-    "quantity": 5,
-    "countryId": 1
+  "datacenterPData": {
+    "country_proxies": { "US": 10 },
+    "high_concurrency": false,
+    "high_priority": false,
+    "whitelisted_ips": false
   }
 }`}</pre>
         </article>
