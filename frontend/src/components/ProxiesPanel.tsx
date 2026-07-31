@@ -55,6 +55,8 @@ type CountryOption = {
   code: string;
 };
 
+type ProviderStoreStatus = Record<PlanCategory, boolean>;
+
 const categoryTabs: Array<{ id: PlanCategory; label: string; badge?: string }> = [
   { id: "datacenter", label: "Datacenter" },
   { id: "ipv6", label: "IPv6" },
@@ -104,158 +106,6 @@ const categoryContent: Record<
     ],
   },
 };
-
-const baseFeatures = {
-  datacenter: [
-    "Fast datacenter pool",
-    "IP whitelist authentication",
-    "Unlimited concurrent connections",
-  ],
-  ipv6: [
-    "Fresh IPv6 subnet access",
-    "Static sessions available",
-    "Country-level targeting",
-  ],
-};
-
-const buildPlans = (): ProxyPlan[] => {
-  const datacenterStandard = [
-    [10, 10],
-    [25, 22],
-    [50, 40],
-    [100, 72],
-    [250, 160],
-    [500, 295],
-  ].map(([ips, price]) => ({
-    id: `datacenter-standard-${ips}`,
-    category: "datacenter" as const,
-    tier: "standard" as const,
-    name: `Datacenter ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "Fast datacenter IPs for automation and browser profiles.",
-    features: baseFeatures.datacenter,
-    providerProxyType: "DatacenterP",
-    requiresCountry: true,
-    adjustableQuantity: true,
-  }));
-
-  const datacenterPremium = [
-    [10, 18],
-    [25, 40],
-    [50, 75],
-    [100, 135],
-    [250, 310],
-  ].map(([ips, price]) => ({
-    id: `datacenter-premium-${ips}`,
-    category: "datacenter" as const,
-    tier: "premium" as const,
-    name: `Premium Datacenter ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "Premium datacenter allocation with stronger routing options.",
-    features: [...baseFeatures.datacenter, "Country-level allocation"],
-    providerProxyType: "DatacenterP",
-    requiresCountry: true,
-    adjustableQuantity: true,
-    popular: ips === 100,
-  }));
-
-  const datacenterUnlimited = [
-    ["1 Day", 12],
-    ["1 Week", 45],
-    ["1 Month", 120],
-  ].map(([label, price]) => ({
-    id: `datacenter-unlimited-${String(label).toLowerCase().replace(/\s+/g, "-")}`,
-    category: "datacenter" as const,
-    tier: "unlimited" as const,
-    name: `Unlimited Datacenter ${label}`,
-    price: Number(price),
-    term: String(label),
-    unit: "IPs",
-    quantity: 1,
-    description: "Datacenter allocation for unlimited traffic workflows.",
-    features: [...baseFeatures.datacenter, "Unlimited traffic"],
-    providerProxyType: "DatacenterP",
-    requiresCountry: true,
-    adjustableQuantity: true,
-  }));
-
-  const ipv6Standard = [
-    [10, 12],
-    [25, 25],
-    [50, 45],
-    [100, 80],
-    [250, 175],
-  ].map(([ips, price]) => ({
-    id: `ipv6-standard-${ips}`,
-    category: "ipv6" as const,
-    tier: "standard" as const,
-    name: `IPv6 ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "IPv6 proxy pack for modern automation tools.",
-    features: baseFeatures.ipv6,
-    providerProxyType: "Ipv6p",
-    requiresCountry: false,
-  }));
-
-  const ipv6Premium = [
-    [10, 20],
-    [25, 42],
-    [50, 75],
-    [100, 140],
-  ].map(([ips, price]) => ({
-    id: `ipv6-premium-${ips}`,
-    category: "ipv6" as const,
-    tier: "premium" as const,
-    name: `Premium IPv6 ${ips} IPs`,
-    price,
-    term: "30 Days",
-    unit: "IPs",
-    quantity: ips,
-    description: "Premium IPv6 routes with cleaner subnet allocation.",
-    features: [...baseFeatures.ipv6, "Priority subnet allocation"],
-    providerProxyType: "Ipv6p",
-    requiresCountry: false,
-  }));
-
-  const ipv6Unlimited = [
-    ["1 Day", 8],
-    ["1 Week", 25],
-    ["1 Month", 79],
-  ].map(([label, price]) => ({
-    id: `ipv6-unlimited-${String(label).toLowerCase().replace(/\s+/g, "-")}`,
-    category: "ipv6" as const,
-    tier: "unlimited" as const,
-    name: `Unlimited IPv6 ${label}`,
-    price: Number(price),
-    term: String(label),
-    unit: "Plan",
-    quantity: 1,
-    description: "Unlimited IPv6 gateway plan for large-scale workflows.",
-    features: [...baseFeatures.ipv6, "Unlimited sessions"],
-    providerProxyType: "Ipv6p",
-    requiresCountry: false,
-  }));
-
-  return [
-    ...datacenterStandard,
-    ...datacenterPremium,
-    ...datacenterUnlimited,
-    ...ipv6Standard,
-    ...ipv6Premium,
-    ...ipv6Unlimited,
-  ];
-};
-
-const fallbackPlans = buildPlans();
 
 const toNumber = (value: unknown, fallback = 0) => {
   const numberValue = Number(value);
@@ -401,7 +251,7 @@ export function ProxiesPanel({
   const [activeCategory, setActiveCategory] =
     useState<PlanCategory>("datacenter");
   const [activeTier, setActiveTier] = useState<PlanTier>("standard");
-  const [selectedPlanId, setSelectedPlanId] = useState(fallbackPlans[0].id);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [checkoutPlan, setCheckoutPlan] = useState<ProxyPlan | null>(null);
   const [countryId, setCountryId] = useState(countryOptions[0].id);
   const [quantity, setQuantity] = useState(1);
@@ -412,14 +262,13 @@ export function ProxiesPanel({
   const [checkoutResult, setCheckoutResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [providerLoading, setProviderLoading] = useState(false);
+  const [providerStoreStatus, setProviderStoreStatus] =
+    useState<ProviderStoreStatus>({ datacenter: false, ipv6: false });
   const toast = useToast();
   const showPricing = viewMode !== "active";
   const showInventory = viewMode !== "purchase";
 
-  const plans = useMemo(
-    () => [...providerPlans, ...fallbackPlans],
-    [providerPlans]
-  );
+  const plans = providerPlans;
 
   const visiblePlans = useMemo(
     () =>
@@ -464,18 +313,32 @@ export function ProxiesPanel({
         );
         return [...otherCategories, ...parsed];
       });
+      setProviderStoreStatus((current) => ({
+        ...current,
+        [activeCategory]: true,
+      }));
 
       if (parsed.length) {
+        setSelectedPlanId((current) =>
+          parsed.some((plan) => plan.id === current) ? current : parsed[0].id
+        );
         toast.success("Provider store synced", `${parsed.length} live provider plans loaded.`);
       } else {
         toast.info("Provider store synced", "No live plans were returned for this category.");
       }
     } catch (requestError) {
+      setProviderPlans((current) =>
+        current.filter((plan) => plan.category !== activeCategory)
+      );
+      setProviderStoreStatus((current) => ({
+        ...current,
+        [activeCategory]: true,
+      }));
       toast.error(
         "Provider store unavailable",
         requestError instanceof Error
           ? requestError.message
-          : "Provider store unavailable. Showing UniProxy catalog."
+          : "Provider store unavailable."
       );
     } finally {
       setProviderLoading(false);
@@ -485,6 +348,14 @@ export function ProxiesPanel({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!showPricing || providerStoreStatus[activeCategory]) {
+      return;
+    }
+
+    void loadProviderStore();
+  }, [activeCategory, loadProviderStore, providerStoreStatus, showPricing]);
 
   const openCheckout = (plan: ProxyPlan) => {
     setSelectedPlanId(plan.id);
@@ -818,7 +689,7 @@ export function ProxiesPanel({
                     plan.category === category.id && plan.tier === activeTier
                 );
                 setActiveCategory(category.id);
-                setSelectedPlanId(nextPlan?.id || fallbackPlans[0].id);
+                setSelectedPlanId(nextPlan?.id || "");
               }}
             >
               {category.badge ? <span>{category.badge}</span> : null}
@@ -839,9 +710,7 @@ export function ProxiesPanel({
                     plan.category === activeCategory && plan.tier === tier.id
                 );
                 setActiveTier(tier.id);
-                if (nextPlan) {
-                  setSelectedPlanId(nextPlan.id);
-                }
+                setSelectedPlanId(nextPlan?.id || "");
               }}
             >
               {tier.label}
@@ -854,40 +723,54 @@ export function ProxiesPanel({
             <h2>{visiblePlanLabel(activeCategory, activeTier)} Plans</h2>
 
             <div className="plan-grid">
-              {visiblePlans.map((plan) => (
-                <article
-                  key={plan.id}
-                  className={`plan-card ${
-                    selectedPlanId === plan.id ? "selected" : ""
-                  }`}
-                >
-                  {plan.popular ? <span className="plan-badge">Popular</span> : null}
-                  <div className="plan-card-row">
-                    <h3>{plan.name}</h3>
-                    <p>{plan.description}</p>
-                    <div className="plan-price">
-                      <span>$</span>
-                      <strong>{formatCurrency(plan.price).replace("$", "")}</strong>
-                      <small>/{plan.term}</small>
-                    </div>
-                  </div>
-
-                  <div className="plan-meta">
-                    <span>{plan.quantity} {plan.unit}</span>
-                    <span>{plan.providerPackageId ? "Live provider" : "UniProxy catalog"}</span>
-                  </div>
-
-                  <button
-                    className="primary-button"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => openCheckout(plan)}
+              {visiblePlans.length ? (
+                visiblePlans.map((plan) => (
+                  <article
+                    key={plan.id}
+                    className={`plan-card ${
+                      selectedPlanId === plan.id ? "selected" : ""
+                    }`}
                   >
-                    <ShoppingCart aria-hidden="true" size={17} />
-                    Proceed to Checkout
-                  </button>
-                </article>
-              ))}
+                    {plan.popular ? (
+                      <span className="plan-badge">Popular</span>
+                    ) : null}
+                    <div className="plan-card-row">
+                      <h3>{plan.name}</h3>
+                      <p>{plan.description}</p>
+                      <div className="plan-price">
+                        <span>$</span>
+                        <strong>
+                          {formatCurrency(plan.price).replace("$", "")}
+                        </strong>
+                        <small>/{plan.term}</small>
+                      </div>
+                    </div>
+
+                    <div className="plan-meta">
+                      <span>
+                        {plan.quantity} {plan.unit}
+                      </span>
+                      <span>Live CatProxies</span>
+                    </div>
+
+                    <button
+                      className="primary-button"
+                      type="button"
+                      disabled={loading}
+                      onClick={() => openCheckout(plan)}
+                    >
+                      <ShoppingCart aria-hidden="true" size={17} />
+                      Proceed to Checkout
+                    </button>
+                  </article>
+                ))
+              ) : (
+                <p className="empty-plan-state">
+                  {providerLoading
+                    ? "Loading live CatProxies packages..."
+                    : "No live CatProxies packages are available for this selection."}
+                </p>
+              )}
             </div>
           </div>
 
