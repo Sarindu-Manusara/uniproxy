@@ -110,10 +110,14 @@ Create a Render Blueprint from this repo, then fill the required environment var
 
 | Key | Example |
 | --- | --- |
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql-host:3306/proxy_system` |
-| `SPRING_DATASOURCE_USERNAME` | `user` |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require` |
+| `SPRING_DATASOURCE_USERNAME` | `postgres.<project-ref>` |
 | `SPRING_DATASOURCE_PASSWORD` | secure database password |
+| `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | `org.postgresql.Driver` |
 | `NOWPAYMENTS_API_KEY` | your NOWPayments API key |
+| `NOWPAYMENTS_API_URL` | `https://api.nowpayments.io/v1/payment` |
+| `NOWPAYMENTS_INVOICE_URL` | `https://api.nowpayments.io/v1/invoice` |
+| `NOWPAYMENTS_IPN_SECRET` | your NOWPayments IPN secret |
 | `APP_BASE_URL` | `https://uniproxy-backend.onrender.com` or your custom backend domain |
 | `FRONTEND_BASE_URL` | `https://uniproxy-frontend.onrender.com` or your frontend domain |
 | `CORS_ALLOWED_ORIGINS` | `https://uniproxy-frontend.onrender.com,https://uniproxy.cc` |
@@ -135,12 +139,13 @@ If you do not use the Blueprint:
 1. Create a backend Web Service.
 2. Select Docker.
 3. Set Dockerfile path to `backend/Dockerfile`.
-4. Set Docker context to `backend`.
+4. Set Docker context to the repository root: `.`.
 5. Set health check path to `/api/health`.
 6. Add the backend environment variables.
 7. Create a frontend Static Site.
-8. Set build command to `cd frontend && npm ci && npm run build`.
-9. Set publish directory to `frontend/out`.
-10. Add `NEXT_PUBLIC_API_BASE_URL` pointing to the backend URL.
+8. Use the root `netlify.toml`, or set Netlify base directory to `frontend`.
+9. Set build command to `npm ci && npm run build`.
+10. Set publish directory to `out`.
+11. Set `NEXT_PUBLIC_API_BASE_URL` pointing to the backend URL.
 
 The backend binds to Render's `PORT` environment variable automatically and falls back to `8080` locally.

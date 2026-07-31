@@ -4,6 +4,7 @@ target/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

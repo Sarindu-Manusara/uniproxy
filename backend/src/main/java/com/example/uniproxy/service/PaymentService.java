@@ -11,13 +11,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PaymentService {
@@ -36,6 +43,9 @@ public class PaymentService {
 
     @Value("${nowpayments.invoice-url}")
     private String invoiceUrl;
+
+    @Value("${nowpayments.ipn-secret}")
+    private String ipnSecret;
 
     @Value("${app.base-url}")
     private String appBaseUrl;
@@ -95,7 +105,9 @@ public class PaymentService {
         }
     }
 
-    public void processWebhook(Map<String, Object> payload) {
+    public void processWebhook(Map<String, Object> payload, String signature) {
+        verifyWebhookSignature(payload, signature);
+
         String status = getFirstString(payload, "payment_status", "status");
 
         if (status == null) {
@@ -205,5 +217,110 @@ public class PaymentService {
         }
 
         return "Payment gateway is temporarily unavailable. Please try again later.";
+    }
+
+    private void verifyWebhookSignature(Map<String, Object> payload, String signature) {
+        if (ipnSecret == null || ipnSecret.isBlank()) {
+            throw new IllegalStateException("Payment webhook secret is not configured.");
+        }
+
+        if (signature == null || signature.isBlank()) {
+            throw new SecurityException("Payment webhook signature is missing.");
+        }
+
+        String expectedSignature = signCanonicalPayload(payload);
+        if (!MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                signature.trim().getBytes(StandardCharsets.UTF_8)
+        )) {
+            throw new SecurityException("Payment webhook signature is invalid.");
+        }
+    }
+
+    private String signCanonicalPayload(Map<String, Object> payload) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA512");
+            mac.init(new SecretKeySpec(ipnSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
+            byte[] digest = mac.doFinal(toCanonicalJson(payload).getBytes(StandardCharsets.UTF_8));
+            return toHex(digest);
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException("Payment webhook signing algorithm is unavailable.", error);
+        } catch (Exception error) {
+            throw new IllegalStateException("Payment webhook signature could not be verified.", error);
+        }
+    }
+
+    private String toCanonicalJson(Map<String, Object> payload) {
+        if (payload == null) {
+            return "{}";
+        }
+
+        return payload.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> quoteJson(entry.getKey()) + ":" + toJsonValue(entry.getValue()))
+                .collect(Collectors.joining(",", "{", "}"));
+    }
+
+    private String toJsonValue(Object value) {
+        if (value == null) {
+            return "null";
+        }
+
+        if (value instanceof String stringValue) {
+            return quoteJson(stringValue);
+        }
+
+        if (value instanceof Number || value instanceof Boolean) {
+            return value.toString();
+        }
+
+        if (value instanceof Map<?, ?> mapValue) {
+            return mapValue.entrySet().stream()
+                    .sorted(Comparator.comparing(entry -> String.valueOf(entry.getKey())))
+                    .map(entry -> quoteJson(String.valueOf(entry.getKey())) + ":" + toJsonValue(entry.getValue()))
+                    .collect(Collectors.joining(",", "{", "}"));
+        }
+
+        if (value instanceof List<?> listValue) {
+            return listValue.stream()
+                    .map(this::toJsonValue)
+                    .collect(Collectors.joining(",", "[", "]"));
+        }
+
+        return quoteJson(value.toString());
+    }
+
+    private String quoteJson(String value) {
+        StringBuilder escaped = new StringBuilder("\"");
+
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            switch (character) {
+                case '"' -> escaped.append("\\\"");
+                case '\\' -> escaped.append("\\\\");
+                case '\b' -> escaped.append("\\b");
+                case '\f' -> escaped.append("\\f");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        escaped.append(character);
+                    }
+                }
+            }
+        }
+
+        return escaped.append('"').toString();
+    }
+
+    private String toHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            hex.append(String.format("%02x", value));
+        }
+        return hex.toString();
     }
 }

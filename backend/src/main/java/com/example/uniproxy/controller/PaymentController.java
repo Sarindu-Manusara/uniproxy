@@ -4,6 +4,7 @@ import com.example.uniproxy.model.User;
 import com.example.uniproxy.repository.UserRepository;
 import com.example.uniproxy.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,6 @@ public class PaymentController {
 
     @PostMapping("/create")
     public ResponseEntity<String> create(@RequestParam BigDecimal amount) {
-        // Get the logged-in user's username from the JWT token
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -34,17 +34,30 @@ public class PaymentController {
             return ResponseEntity.badRequest().body(error.getMessage());
         }
     }
+
     @PostMapping("/webhook")
-    public void handleWebhook(@RequestBody Map<String, Object> payload) {
-        paymentService.processWebhook(payload);
+    public ResponseEntity<String> handleWebhook(
+            @RequestBody Map<String, Object> payload,
+            @RequestHeader(value = "x-nowpayments-sig", required = false) String signature
+    ) {
+        try {
+            paymentService.processWebhook(payload, signature);
+            return ResponseEntity.ok("ok");
+        } catch (SecurityException error) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error.getMessage());
+        } catch (IllegalArgumentException error) {
+            return ResponseEntity.badRequest().body(error.getMessage());
+        } catch (IllegalStateException error) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error.getMessage());
+        }
     }
+
     @PostMapping("/create-account")
     public ResponseEntity<String> createNowPaymentsAccount() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // PaymentService එක හරහා NOWPayments API එක call කරනවා
         try {
             return ResponseEntity.ok(paymentService.createNowPaymentsUser(user));
         } catch (IllegalStateException error) {

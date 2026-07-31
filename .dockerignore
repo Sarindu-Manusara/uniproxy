@@ -1,0 +1,24 @@
+.git
+.gitignore
+.DS_Store
+**/.DS_Store
+
+# Local environment files must stay outside Docker build context.
+.env
+.env.*
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+!backend/.env.example
+!frontend/.env.example
+
+# Generated output and dependencies.
+backend/target
+frontend/.next
+frontend/out
+frontend/node_modules
+node_modules
+
+# The backend image only needs the backend source tree.
+frontend
