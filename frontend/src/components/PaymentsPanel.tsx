@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import {
-  UserCheck,
   Wallet,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -67,7 +66,7 @@ export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
       onChanged();
 
       if (response.trim().startsWith("http")) {
-        toast.info("Opening payment invoice", "Redirecting to NOWPayments checkout.");
+        toast.info("Opening payment invoice", "Redirecting to secure checkout.");
         window.location.href = response.trim();
       } else {
         toast.success("Payment created", response);
@@ -78,30 +77,6 @@ export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
         requestError instanceof Error
           ? friendlyPaymentError(requestError.message)
           : "Payment redirect could not be created. Please try again later."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createAccount = async () => {
-    setLoading(true);
-
-    try {
-      const response = await api.createNowPaymentsAccount(token);
-
-      if (isPaymentErrorResponse(response)) {
-        toast.error("Payment gateway unavailable", friendlyPaymentError(response));
-        return;
-      }
-
-      toast.success("Payment gateway ready", response);
-    } catch (requestError) {
-      toast.error(
-        "Payment gateway unavailable",
-        requestError instanceof Error
-          ? friendlyPaymentError(requestError.message)
-          : "Unable to initialize NOWPayments"
       );
     } finally {
       setLoading(false);
@@ -134,18 +109,6 @@ export function PaymentsPanel({ token, onChanged }: PaymentsPanelProps) {
           Create payment
         </button>
       </form>
-
-      <div className="tool-panel split-panel">
-        <div>
-          <p className="eyebrow">NOWPayments</p>
-          <h2>Account connection</h2>
-        </div>
-        <button className="secondary-button" type="button" onClick={createAccount} disabled={loading}>
-          <UserCheck aria-hidden="true" size={18} />
-          Initialize
-        </button>
-      </div>
-
     </section>
   );
 }

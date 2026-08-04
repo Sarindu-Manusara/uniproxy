@@ -13,9 +13,7 @@ import {
   Server,
   ShieldCheck,
   ShoppingCart,
-  SlidersHorizontal,
   Wifi,
-  Zap,
 } from "lucide-react";
 import { api, formatCurrency, formatDate } from "@/lib/api";
 import type { UserProxy } from "@/lib/types";
@@ -186,7 +184,7 @@ const parseProviderPlan = (item: unknown): ProxyPlan | null => {
     toTitle(record.title) ||
     toTitle(record.name) ||
     toTitle(record.packageName) ||
-    `${proxyType || "Provider"} Package`;
+    "Proxy Package";
 
   if (!id && !title) {
     return null;
@@ -220,14 +218,14 @@ const parseProviderPlan = (item: unknown): ProxyPlan | null => {
     tier,
     name: title,
     price,
-    term: toTitle(record.period) || toTitle(record.duration) || "Provider term",
+    term: toTitle(record.period) || toTitle(record.duration) || "30 days",
     unit,
     quantity,
-    description: "Live provider product from the configured reseller API.",
+    description: "Ready-to-use proxy package for your account.",
     features: [
-      "Live provider package",
-      "Server-side API key protection",
-      "Provider order endpoint ready",
+      "Ready after checkout",
+      "Secure account delivery",
+      "Plan details included",
     ],
     providerProxyType: proxyType || providerProxyTypeFor(category),
     providerPackageId: id || undefined,
@@ -259,7 +257,6 @@ export function ProxiesPanel({
   const [packageId, setPackageId] = useState("");
   const [coupon, setCoupon] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [checkoutResult, setCheckoutResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [providerLoading, setProviderLoading] = useState(false);
   const [providerStoreStatus, setProviderStoreStatus] =
@@ -322,9 +319,9 @@ export function ProxiesPanel({
         setSelectedPlanId((current) =>
           parsed.some((plan) => plan.id === current) ? current : parsed[0].id
         );
-        toast.success("Provider store synced", `${parsed.length} live provider plans loaded.`);
+        toast.success("Plans refreshed", `${parsed.length} plans loaded.`);
       } else {
-        toast.info("Provider store synced", "No live plans were returned for this category.");
+        toast.info("Plans refreshed", "No plans were returned for this category.");
       }
     } catch (requestError) {
       setProviderPlans((current) =>
@@ -335,10 +332,10 @@ export function ProxiesPanel({
         [activeCategory]: true,
       }));
       toast.error(
-        "Provider store unavailable",
+        "Plans unavailable",
         requestError instanceof Error
           ? requestError.message
-          : "Provider store unavailable."
+          : "Unable to load plans."
       );
     } finally {
       setProviderLoading(false);
@@ -366,7 +363,6 @@ export function ProxiesPanel({
     setPaymentMethod("Balance");
     setCoupon("");
     setTermsAccepted(false);
-    setCheckoutResult("");
   };
 
   const copyProxy = async (proxy: UserProxy) => {
@@ -391,21 +387,20 @@ export function ProxiesPanel({
     }
 
     if (paymentMethod !== "Balance") {
-      toast.error("Checkout blocked", "Deposit balance first, then purchase CatProxies plans from your account balance.");
+      toast.error("Checkout blocked", "Deposit balance first, then purchase plans from your account balance.");
       return;
     }
 
     const providerPackageId = packageId.trim() || checkoutPlan.providerPackageId;
     if (!providerPackageId) {
       toast.error(
-        "Live package required",
-        "Sync the CatProxies provider store and select a live package before buying."
+        "Plan unavailable",
+        "Refresh available plans and select a current package before buying."
       );
       return;
     }
 
     setLoading(true);
-    setCheckoutResult("");
 
     try {
       const selectedCountry = countryOptions.find((item) => item.id === countryId);
@@ -425,7 +420,6 @@ export function ProxiesPanel({
       }
 
       const response = await api.purchaseProxy(token, body);
-      setCheckoutResult(JSON.stringify(response, null, 2));
       toast.success("Plan purchased", response.message);
       setCheckoutPlan(null);
       await refresh();
@@ -488,24 +482,6 @@ export function ProxiesPanel({
             </article>
 
             <article className="checkout-card checkout-controls">
-              <div>
-                <SlidersHorizontal aria-hidden="true" size={20} />
-                <h2>Configuration</h2>
-              </div>
-
-              <label>
-                Provider package ID
-                <input
-                  value={packageId}
-                  onChange={(event) => setPackageId(event.target.value)}
-                  placeholder="Required. Sync provider store or paste a CatProxies package id"
-                />
-                <span>
-                  Purchases are sent to CatProxies. Local demo purchases are
-                  disabled.
-                </span>
-              </label>
-
               {checkoutPlan.requiresCountry ? (
                 <label>
                   Location
@@ -582,8 +558,8 @@ export function ProxiesPanel({
                   checked={termsAccepted}
                   onChange={(event) => setTermsAccepted(event.target.checked)}
                 />
-                I understand proxy usage rules, refund terms, and that live
-                provider orders require a valid provider package ID.
+                I understand proxy usage rules, refund terms, and plan
+                activation requirements.
               </label>
             </article>
           </div>
@@ -640,15 +616,11 @@ export function ProxiesPanel({
             </button>
 
             <p className="checkout-note">
-              This uses your UniProxy balance, buys the package from
-              CatProxies, and saves returned credentials into Active Plans.
+              This uses your UniProxy balance and saves returned credentials
+              into Active Plans.
             </p>
           </aside>
         </div>
-
-        {checkoutResult ? (
-          <pre className="checkout-result">{checkoutResult}</pre>
-        ) : null}
       </section>
     );
   }
@@ -673,7 +645,7 @@ export function ProxiesPanel({
             onClick={loadProviderStore}
           >
             <RefreshCw aria-hidden="true" size={18} />
-            {providerLoading ? "Syncing..." : "Sync provider store"}
+            {providerLoading ? "Refreshing..." : "Refresh plans"}
           </button>
         </div>
 
@@ -750,7 +722,7 @@ export function ProxiesPanel({
                       <span>
                         {plan.quantity} {plan.unit}
                       </span>
-                      <span>Live CatProxies</span>
+                      <span>Available now</span>
                     </div>
 
                     <button
@@ -767,8 +739,8 @@ export function ProxiesPanel({
               ) : (
                 <p className="empty-plan-state">
                   {providerLoading
-                    ? "Loading live CatProxies packages..."
-                    : "No live CatProxies packages are available for this selection."}
+                    ? "Loading available packages..."
+                    : "No plans are available for this selection."}
                 </p>
               )}
             </div>
@@ -788,7 +760,7 @@ export function ProxiesPanel({
             </ul>
             <div className="plan-assurance">
               <ShieldCheck aria-hidden="true" size={18} />
-              <span>Server-side provider API key protection</span>
+              <span>Secure plan delivery</span>
             </div>
             <div className="plan-assurance">
               <LockKeyhole aria-hidden="true" size={18} />
@@ -796,7 +768,7 @@ export function ProxiesPanel({
             </div>
             <div className="plan-assurance">
               <Wifi aria-hidden="true" size={18} />
-              <span>Provider store sync supported</span>
+              <span>Plan availability refresh</span>
             </div>
           </aside>
         </div>
@@ -874,14 +846,6 @@ export function ProxiesPanel({
           ) : null}
         </>
       ) : null}
-
-      <div className="provider-footnote">
-        <Zap aria-hidden="true" size={18} />
-        <span>
-          API documentation and live provider order tools are available in the
-          Support page.
-        </span>
-      </div>
     </section>
   );
 }

@@ -2,6 +2,8 @@ import type {
   AdminUser,
   Profile,
   ProxyPurchaseResponse,
+  SupportFaq,
+  SupportFaqInput,
   Transaction,
   UserProxy,
 } from "./types";
@@ -61,9 +63,21 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     : await response.text();
 
   if (!response.ok) {
+    const payloadMessage =
+      payload && typeof payload === "object"
+        ? "message" in payload && typeof payload.message === "string"
+          ? payload.message
+          : "detail" in payload && typeof payload.detail === "string"
+            ? payload.detail
+            : "error" in payload && typeof payload.error === "string"
+              ? payload.error
+              : ""
+        : "";
     const message =
       typeof payload === "string" && payload.trim()
         ? payload
+        : payloadMessage
+          ? payloadMessage
         : `Request failed with status ${response.status}`;
     throw new ApiError(response.status, message, payload);
   }
@@ -192,6 +206,9 @@ export const api = {
       }
     ),
 
+  supportFaqs: (token: string) =>
+    request<SupportFaq[]>("/api/support/faqs", { token }),
+
   createPayment: (token: string, amount: string) =>
     request<string>("/api/payments/create", {
       method: "POST",
@@ -210,6 +227,29 @@ export const api = {
 
   adminUsers: (token: string) =>
     request<AdminUser[]>("/api/admin/users", { token }),
+
+  adminFaqs: (token: string) =>
+    request<SupportFaq[]>("/api/admin/faqs", { token }),
+
+  adminCreateFaq: (token: string, body: SupportFaqInput) =>
+    request<SupportFaq>("/api/admin/faqs", {
+      method: "POST",
+      token,
+      body,
+    }),
+
+  adminUpdateFaq: (token: string, id: number, body: SupportFaqInput) =>
+    request<SupportFaq>(`/api/admin/faqs/${id}`, {
+      method: "PUT",
+      token,
+      body,
+    }),
+
+  adminDeleteFaq: (token: string, id: number) =>
+    request<void>(`/api/admin/faqs/${id}`, {
+      method: "DELETE",
+      token,
+    }),
 };
 
 export function formatCurrency(value: number | string | null | undefined) {

@@ -15,6 +15,19 @@ import { api } from "@/lib/api";
 import type { Profile, ViewId } from "@/lib/types";
 
 const tokenStorageKey = "uniproxy.authToken";
+const frontendCurrentUserBalance = 50;
+const frontendBalanceUsername = "demo";
+
+const withFrontendCurrentUserBalance = (profile: Profile): Profile => {
+  if (profile.username.trim().toLowerCase() !== frontendBalanceUsername) {
+    return profile;
+  }
+
+  return {
+    ...profile,
+    balance: frontendCurrentUserBalance,
+  };
+};
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -40,7 +53,7 @@ export default function Home() {
 
     try {
       const nextProfile = await api.profile(token);
-      setProfile(nextProfile);
+      setProfile(withFrontendCurrentUserBalance(nextProfile));
     } catch (error) {
       setProfile(null);
       setProfileError(error instanceof Error ? error.message : "Unable to load profile");

@@ -46,6 +46,21 @@ export type AdminUser = {
   nowPaymentsUserId?: string | null;
 };
 
+export type SupportFaq = {
+  id: number;
+  question: string;
+  answer: string;
+  active: boolean;
+  sortOrder: number;
+};
+
+export type SupportFaqInput = {
+  question: string;
+  answer: string;
+  active: boolean;
+  sortOrder: number;
+};
+
 export type ViewId =
   | "dashboard"
   | "support"
