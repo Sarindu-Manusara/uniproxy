@@ -340,27 +340,54 @@ public class ProxyService {
             Map<String, Object> request
     ) {
         Object explicit = firstPresent(request, "countryProxies", "country_proxies");
+        Map<String, Object> allocation;
         if (explicit instanceof Map<?, ?> explicitMap) {
-            return copyMap(explicitMap);
+            allocation = copyMap(explicitMap);
+        } else {
+            Object nested = asMap(request.get("datacenterPData")).get("country_proxies");
+            if (nested instanceof Map<?, ?> nestedMap) {
+                allocation = copyMap(nestedMap);
+            } else {
+                String countryCode = firstString(request, "countryCode");
+                allocation = Map.of(countryCode == null ? "US" : countryCode, requestInt(request, "quantity", 0));
+            }
         }
 
-        Map<String, Object> datacenterPData = asMap(request.get("datacenterPData"));
-        Object nested = datacenterPData.get("country_proxies");
-        if (nested instanceof Map<?, ?> nestedMap) {
-            return copyMap(nestedMap);
+        int expected = firstIntOrDefault(product, 0, "ips", "ipCount", "quantity", "proxyNumber");
+        if (expected <= 0) throw new IllegalArgumentException("Package IP count is unavailable.");
+        Map<String, Object> normalized = new HashMap<>();
+        long total = 0;
+        for (Map.Entry<String, Object> entry : allocation.entrySet()) {
+            String code = entry.getKey().trim().toUpperCase(Locale.ROOT);
+            int count;
+            try {
+                count = new BigDecimal(entry.getValue().toString()).intValueExact();
+            } catch (RuntimeException error) {
+                throw new IllegalArgumentException("Country allocations must be whole, non-negative IP counts.");
+            }
+            if (!code.matches("[A-Z]{2}") || count < 0 || normalized.containsKey(code)) {
+                throw new IllegalArgumentException("Invalid country allocation.");
+            }
+            normalized.put(code, count);
+            total += count;
         }
+        if (total != expected) throw new IllegalArgumentException("Country allocation must total exactly " + expected + " IPs.");
 
-        String countryCode = firstString(request, "countryCode");
-        if (countryCode == null) {
-            countryCode = "US";
+        Map<String, Integer> stock = new HashMap<>();
+        for (Map<String, Object> country : unwrapArray(catProxiesApiService.getDatacenterCountries())) {
+            String code = firstString(country, "code");
+            Integer available = firstIntOrNull(country, null, "available");
+            if (code != null && available != null && available >= 0) stock.put(code.toUpperCase(Locale.ROOT), available);
         }
-
-        int quantity = requestInt(
-                request,
-                "quantity",
-                firstIntOrDefault(product, 1, "ips", "quantity", "proxyNumber")
-        );
-        return Map.of(countryCode.toUpperCase(Locale.ROOT), quantity);
+        if (stock.isEmpty()) throw new IllegalStateException("Country availability unavailable. Try again shortly.");
+        for (Map.Entry<String, Object> entry : normalized.entrySet()) {
+            Integer available = stock.get(entry.getKey());
+            if (available == null || (Integer) entry.getValue() > available) {
+                throw new IllegalArgumentException("Insufficient or unavailable IP stock for " + entry.getKey() + ". Refresh country availability.");
+            }
+        }
+        normalized.values().removeIf(count -> ((Integer) count) == 0);
+        return normalized;
     }
 
     private Integer firstLocationId(Map<String, Object> product) {
@@ -499,6 +526,7 @@ public class ProxyService {
                     "store",
                     "packages",
                     "products",
+                    "countries",
                     "items",
                     "servers",
                     "proxies",

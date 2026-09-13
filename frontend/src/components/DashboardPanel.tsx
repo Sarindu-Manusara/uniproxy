@@ -40,7 +40,7 @@ export function DashboardPanel({
       <div className="section-heading">
         <div>
           <p className="eyebrow">Dashboard</p>
-          <h1>Proxy account overview</h1>
+          <h1>Overview</h1>
         </div>
         <button className="secondary-button" type="button" onClick={onRefresh}>
           <RefreshCw aria-hidden="true" size={18} />

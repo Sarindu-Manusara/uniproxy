@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
   Copy,
-  CreditCard,
   Globe2,
   LockKeyhole,
   PackageCheck,
@@ -17,6 +16,9 @@ import {
 } from "lucide-react";
 import { api, formatCurrency, formatDate } from "@/lib/api";
 import type { UserProxy } from "@/lib/types";
+import { allocationValid, bandwidthLabel, durationLabel, emptyFilters, filterValues, matchesFilters, parseCountryStock, parseProviderPlan, unwrapArray } from "@/lib/proxy-catalog";
+import type { CountryAllocation as Allocation, CountryStock, PlanCategory, PlanFilters, ProxyPlan } from "@/lib/proxy-catalog";
+import { CountryAllocation } from "./CountryAllocation";
 import { useToast } from "./ToastProvider";
 
 type ProxiesPanelProps = {
@@ -25,56 +27,13 @@ type ProxiesPanelProps = {
   viewMode?: "active" | "purchase" | "all";
 };
 
-type PlanCategory = "datacenter" | "ipv6";
-type PlanTier = "standard" | "premium" | "unlimited";
-type PaymentMethod = "Balance" | "Crypto" | "Card";
-
-type ProxyPlan = {
-  id: string;
-  category: PlanCategory;
-  tier: PlanTier;
-  name: string;
-  price: number;
-  term: string;
-  unit: string;
-  quantity: number;
-  description: string;
-  features: string[];
-  providerProxyType: string;
-  providerPackageId?: string;
-  popular?: boolean;
-  requiresCountry?: boolean;
-  adjustableQuantity?: boolean;
-};
-
-type CountryOption = {
-  id: string;
-  name: string;
-  code: string;
-};
+type PaymentMethod = "Balance" | "Crypto";
 
 type ProviderStoreStatus = Record<PlanCategory, boolean>;
 
 const categoryTabs: Array<{ id: PlanCategory; label: string; badge?: string }> = [
   { id: "datacenter", label: "Datacenter" },
   { id: "ipv6", label: "IPv6" },
-];
-
-const tierTabs: Array<{ id: PlanTier; label: string }> = [
-  { id: "standard", label: "Standard" },
-  { id: "premium", label: "Premium" },
-  { id: "unlimited", label: "Unlimited" },
-];
-
-const countryOptions: CountryOption[] = [
-  { id: "1", name: "United States", code: "US" },
-  { id: "44", name: "United Kingdom", code: "GB" },
-  { id: "49", name: "Germany", code: "DE" },
-  { id: "33", name: "France", code: "FR" },
-  { id: "31", name: "Netherlands", code: "NL" },
-  { id: "65", name: "Singapore", code: "SG" },
-  { id: "61", name: "Australia", code: "AU" },
-  { id: "81", name: "Japan", code: "JP" },
 ];
 
 const categoryContent: Record<
@@ -105,139 +64,14 @@ const categoryContent: Record<
   },
 };
 
-const toNumber = (value: unknown, fallback = 0) => {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : fallback;
-};
-
-const toTitle = (value: unknown) =>
-  typeof value === "string" && value.trim() ? value.trim() : "";
-
 const providerProxyTypeFor = (category: PlanCategory) => {
   if (category === "datacenter") return "DatacenterP";
   if (category === "ipv6") return "Ipv6p";
   return "DatacenterP";
 };
 
-const unwrapArray = (value: unknown): unknown[] => {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const candidates = [
-      record.payload,
-      record.data,
-      record.store,
-      record.packages,
-      record.products,
-      record.items,
-      record.servers,
-      record.proxies,
-      record.lines,
-      record.orders,
-    ];
-
-    for (const candidate of candidates) {
-      const nested = unwrapArray(candidate);
-      if (nested.length) {
-        return nested;
-      }
-    }
-  }
-
-  return [];
-};
-
-const inferCategory = (input: string): PlanCategory | null => {
-  const text = input.toLowerCase();
-
-  if (text.includes("datacenterp") || text.includes("datacenter")) return "datacenter";
-  if (text.includes("ipv6p") || text.includes("ipv6")) return "ipv6";
-  return null;
-};
-
-const inferTier = (input: string): PlanTier => {
-  const text = input.toLowerCase();
-
-  if (text.includes("premium")) {
-    return "premium";
-  }
-
-  if (text.includes("unlimitedresidential") || text.includes("unlimited")) {
-    return "unlimited";
-  }
-
-  return "standard";
-};
-
-const parseProviderPlan = (item: unknown): ProxyPlan | null => {
-  if (!item || typeof item !== "object") {
-    return null;
-  }
-
-  const record = item as Record<string, unknown>;
-  const id = toTitle(record.id) || toTitle(record.packageId) || toTitle(record._id);
-  const proxyType = toTitle(record.proxyType) || toTitle(record.type) || toTitle(record.category);
-  const title =
-    toTitle(record.title) ||
-    toTitle(record.name) ||
-    toTitle(record.packageName) ||
-    "Proxy Package";
-
-  if (!id && !title) {
-    return null;
-  }
-
-  const category = inferCategory(`${proxyType} ${title}`);
-  if (!category) {
-    return null;
-  }
-  const tier = inferTier(`${proxyType} ${title}`);
-  const bandwidth =
-    toNumber(record.bandwidthGb) ||
-    toNumber(record.bandwidth) ||
-    toNumber(record.traffic);
-  const ips =
-    toNumber(record.ips) ||
-    toNumber(record.ipCount) ||
-    toNumber(record.quantity);
-  const speed = toNumber(record.speed) || toNumber(record.speedMbps);
-  const quantity = category === "datacenter" ? ips || bandwidth || 1 : bandwidth || speed || 1;
-  const unit = category === "datacenter" ? "IPs" : bandwidth ? "GB" : speed ? "Mbps" : "Plan";
-  const price =
-    toNumber(record.resellerPrice) ||
-    toNumber(record.price) ||
-    toNumber(record.amount) ||
-    toNumber(record.total);
-
-  return {
-    id: `provider-${id || title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-    category,
-    tier,
-    name: title,
-    price,
-    term: toTitle(record.period) || toTitle(record.duration) || "30 days",
-    unit,
-    quantity,
-    description: "Ready-to-use proxy package for your account.",
-    features: [
-      "Ready after checkout",
-      "Secure account delivery",
-      "Plan details included",
-    ],
-    providerProxyType: proxyType || providerProxyTypeFor(category),
-    providerPackageId: id || undefined,
-    requiresCountry: category === "datacenter",
-    adjustableQuantity: category === "datacenter",
-  };
-};
-
-const visiblePlanLabel = (category: PlanCategory, tier: PlanTier) =>
-  `${tierTabs.find((item) => item.id === tier)?.label} ${
-    categoryTabs.find((item) => item.id === category)?.label
-  }`;
+const visiblePlanLabel = (category: PlanCategory) =>
+  categoryTabs.find((item) => item.id === category)?.label;
 
 export function ProxiesPanel({
   token,
@@ -248,34 +82,58 @@ export function ProxiesPanel({
   const [providerPlans, setProviderPlans] = useState<ProxyPlan[]>([]);
   const [activeCategory, setActiveCategory] =
     useState<PlanCategory>("datacenter");
-  const [activeTier, setActiveTier] = useState<PlanTier>("standard");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [checkoutPlan, setCheckoutPlan] = useState<ProxyPlan | null>(null);
-  const [countryId, setCountryId] = useState(countryOptions[0].id);
-  const [quantity, setQuantity] = useState(1);
+  const [filters, setFilters] = useState<PlanFilters>(emptyFilters);
+  const [countries, setCountries] = useState<CountryStock[]>([]);
+  const [allocation, setAllocation] = useState<Allocation>({});
+  const [countriesLoading, setCountriesLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Balance");
-  const [packageId, setPackageId] = useState("");
-  const [coupon, setCoupon] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [providerLoading, setProviderLoading] = useState(false);
   const [providerStoreStatus, setProviderStoreStatus] =
     useState<ProviderStoreStatus>({ datacenter: false, ipv6: false });
+  const providerRequests = useRef(new Set<PlanCategory>());
+  const countryRequest = useRef<Promise<void> | null>(null);
   const toast = useToast();
   const showPricing = viewMode !== "active";
   const showInventory = viewMode !== "purchase";
 
   const plans = providerPlans;
 
-  const visiblePlans = useMemo(
-    () =>
-      plans.filter(
-        (plan) => plan.category === activeCategory && plan.tier === activeTier
-      ),
-    [activeCategory, activeTier, plans]
+  const categoryPlans = useMemo(
+    () => plans.filter((plan) => plan.category === activeCategory),
+    [activeCategory, plans]
   );
+  const visiblePlans = useMemo(() => categoryPlans.filter(plan => matchesFilters(plan, filters)), [categoryPlans, filters]);
+  const allocationPlan = checkoutPlan ?? visiblePlans.find(plan => plan.id === selectedPlanId) ?? visiblePlans[0];
+  const allocationTarget = allocationPlan?.ipCount ?? 0;
+  const countryCapacity = useMemo(() => countries.reduce((sum, country) => sum + country.available, 0), [countries]);
 
   const activeDetails = categoryContent[activeCategory];
+
+  const loadCountries = useCallback(async () => {
+    if (countryRequest.current) return countryRequest.current;
+    setCountriesLoading(true);
+    const request = (async () => {
+      try {
+        setCountries(parseCountryStock(await api.providerDatacenterCountries(token)));
+      } catch (error) {
+        setCountries([]);
+        toast.error("Country availability unavailable", error instanceof Error ? error.message : "Unable to load country availability.");
+      } finally {
+        setCountriesLoading(false);
+        countryRequest.current = null;
+      }
+    })();
+    countryRequest.current = request;
+    return request;
+  }, [toast, token]);
+
+  useEffect(() => {
+    if (showPricing && activeCategory === "datacenter") void loadCountries();
+  }, [activeCategory, loadCountries, showPricing]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -295,6 +153,8 @@ export function ProxiesPanel({
   }, [toast, token]);
 
   const loadProviderStore = useCallback(async () => {
+    if (providerRequests.current.has(activeCategory)) return;
+    providerRequests.current.add(activeCategory);
     setProviderLoading(true);
 
     try {
@@ -302,7 +162,7 @@ export function ProxiesPanel({
       const response = await api.providerStore(token, proxyType);
       const parsed = unwrapArray(response)
         .map(parseProviderPlan)
-        .filter((plan): plan is ProxyPlan => Boolean(plan));
+        .filter((plan): plan is ProxyPlan => Boolean(plan) && plan?.category === activeCategory);
 
       setProviderPlans((current) => {
         const otherCategories = current.filter(
@@ -338,6 +198,7 @@ export function ProxiesPanel({
           : "Unable to load plans."
       );
     } finally {
+      providerRequests.current.delete(activeCategory);
       setProviderLoading(false);
     }
   }, [activeCategory, toast, token]);
@@ -357,11 +218,11 @@ export function ProxiesPanel({
   const openCheckout = (plan: ProxyPlan) => {
     setSelectedPlanId(plan.id);
     setCheckoutPlan(plan);
-    setQuantity(plan.quantity || 1);
-    setCountryId(countryOptions[0].id);
-    setPackageId(plan.providerPackageId || "");
+    if (plan.category === "datacenter") {
+      if (!allocationValid(allocation, countries, plan.ipCount ?? 0)) setAllocation({});
+      void loadCountries();
+    }
     setPaymentMethod("Balance");
-    setCoupon("");
     setTermsAccepted(false);
   };
 
@@ -371,14 +232,8 @@ export function ProxiesPanel({
     toast.success("Proxy copied", "Proxy credentials were copied to the clipboard.");
   };
 
-  const checkoutSubtotal = checkoutPlan
-    ? checkoutPlan.adjustableQuantity
-      ? (checkoutPlan.price / Math.max(checkoutPlan.quantity, 1)) * quantity
-      : checkoutPlan.price
-    : 0;
-  const couponDiscount = coupon.trim() ? Math.min(checkoutSubtotal * 0.1, 50) : 0;
-  const processingFee = paymentMethod === "Card" ? checkoutSubtotal * 0.03 : 0;
-  const checkoutTotal = Math.max(checkoutSubtotal - couponDiscount + processingFee, 0);
+  const checkoutSubtotal = checkoutPlan?.price ?? 0;
+  const checkoutTotal = checkoutSubtotal;
 
   const submitCheckout = async () => {
     if (!checkoutPlan || !termsAccepted) {
@@ -391,7 +246,7 @@ export function ProxiesPanel({
       return;
     }
 
-    const providerPackageId = packageId.trim() || checkoutPlan.providerPackageId;
+    const providerPackageId = checkoutPlan.providerPackageId;
     if (!providerPackageId) {
       toast.error(
         "Plan unavailable",
@@ -400,20 +255,22 @@ export function ProxiesPanel({
       return;
     }
 
+    if (checkoutPlan.category === "datacenter" && (countriesLoading || !allocationValid(allocation, countries, checkoutPlan.ipCount ?? 0))) {
+      toast.error("Country allocation required", `Allocate exactly ${checkoutPlan.ipCount ?? 0} IPs within available country stock.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const selectedCountry = countryOptions.find((item) => item.id === countryId);
       const body: Record<string, unknown> = {
         packageId: providerPackageId,
         proxyType: checkoutPlan.providerProxyType,
-        quantity,
-        countryId: toNumber(countryId, Number(countryId)),
-        countryCode: selectedCountry?.code || "US",
+        quantity: checkoutPlan.quantity,
       };
 
       if (checkoutPlan.category === "datacenter") {
-        body.countryProxies = selectedCountry ? { [selectedCountry.code]: quantity } : {};
+        body.countryProxies = Object.fromEntries(Object.entries(allocation).filter(([, count]) => count > 0));
         body.highConcurrency = false;
         body.highPriority = false;
         body.whitelistedIps = false;
@@ -451,10 +308,6 @@ export function ProxiesPanel({
           <div>
             <p className="eyebrow">Plan checkout</p>
             <h1>{checkoutPlan.name}</h1>
-            <p>
-              {checkoutPlan.description} Configure the order, confirm terms, and
-              complete checkout.
-            </p>
           </div>
         </div>
 
@@ -467,61 +320,17 @@ export function ProxiesPanel({
                   <h2>{checkoutPlan.name}</h2>
                 </div>
                 <span className="checkout-category">
-                  {visiblePlanLabel(checkoutPlan.category, checkoutPlan.tier)}
+                  {visiblePlanLabel(checkoutPlan.category)}
                 </span>
               </div>
-              <p>{checkoutPlan.description}</p>
-              <div className="checkout-feature-grid">
-                {checkoutPlan.features.map((feature) => (
-                  <span key={feature}>
-                    <Check aria-hidden="true" size={16} />
-                    {feature}
-                  </span>
-                ))}
+              <div className="plan-meta">
+                <span>{checkoutPlan.term}</span>
+                <span>{checkoutPlan.quantity.toLocaleString("en-US")} {checkoutPlan.unit}</span>
+                {checkoutPlan.bandwidthGb !== null ? <span>{bandwidthLabel(checkoutPlan.bandwidthGb)}</span> : null}
               </div>
             </article>
 
-            <article className="checkout-card checkout-controls">
-              {checkoutPlan.requiresCountry ? (
-                <label>
-                  Location
-                  <select
-                    value={countryId}
-                    onChange={(event) => setCountryId(event.target.value)}
-                  >
-                    {countryOptions.map((country) => (
-                      <option key={country.id} value={country.id}>
-                        {country.name} ({country.code})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-
-              {checkoutPlan.adjustableQuantity ? (
-                <label>
-                  Quantity
-                  <input
-                    min={1}
-                    max={10000}
-                    type="number"
-                    value={quantity}
-                    onChange={(event) =>
-                      setQuantity(Math.max(1, Number(event.target.value) || 1))
-                    }
-                  />
-                </label>
-              ) : null}
-
-              <label>
-                Coupon code
-                <input
-                  value={coupon}
-                  onChange={(event) => setCoupon(event.target.value)}
-                  placeholder="Optional"
-                />
-              </label>
-            </article>
+            {checkoutPlan.category === "datacenter" ? <CountryAllocation countries={countries} target={allocationTarget} value={allocation} onChange={setAllocation} loading={countriesLoading} onRefresh={loadCountries} /> : null}
 
             <article className="checkout-card">
               <div className="checkout-card-heading">
@@ -531,7 +340,7 @@ export function ProxiesPanel({
                 </div>
               </div>
               <div className="payment-method-grid">
-                {(["Balance", "Crypto", "Card"] as PaymentMethod[]).map((method) => (
+                {(["Balance", "Crypto"] as PaymentMethod[]).map((method) => (
                   <button
                     key={method}
                     type="button"
@@ -540,10 +349,8 @@ export function ProxiesPanel({
                   >
                     {method === "Balance" ? (
                       <PackageCheck aria-hidden="true" size={18} />
-                    ) : method === "Crypto" ? (
-                      <Globe2 aria-hidden="true" size={18} />
                     ) : (
-                      <CreditCard aria-hidden="true" size={18} />
+                      <Globe2 aria-hidden="true" size={18} />
                     )}
                     {method}
                   </button>
@@ -578,12 +385,12 @@ export function ProxiesPanel({
               </div>
               <div>
                 <span>Type</span>
-                <strong>{visiblePlanLabel(checkoutPlan.category, checkoutPlan.tier)}</strong>
+                <strong>{visiblePlanLabel(checkoutPlan.category)}</strong>
               </div>
               <div>
                 <span>Quantity</span>
                 <strong>
-                  {checkoutPlan.adjustableQuantity ? quantity : checkoutPlan.quantity}{" "}
+                  {checkoutPlan.quantity.toLocaleString("en-US")}{" "}
                   {checkoutPlan.unit}
                 </strong>
               </div>
@@ -591,24 +398,12 @@ export function ProxiesPanel({
                 <span>Subtotal</span>
                 <strong>{formatCurrency(checkoutSubtotal)}</strong>
               </div>
-              {couponDiscount ? (
-                <div>
-                  <span>Discount</span>
-                  <strong>-{formatCurrency(couponDiscount)}</strong>
-                </div>
-              ) : null}
-              {processingFee ? (
-                <div>
-                  <span>Payment fee</span>
-                  <strong>{formatCurrency(processingFee)}</strong>
-                </div>
-              ) : null}
             </div>
 
             <button
               className="primary-button"
               type="button"
-              disabled={loading || !termsAccepted}
+              disabled={loading || !termsAccepted || (checkoutPlan.category === "datacenter" && (countriesLoading || !allocationValid(allocation, countries, allocationTarget)))}
               onClick={submitCheckout}
             >
               <ShoppingCart aria-hidden="true" size={18} />
@@ -633,10 +428,6 @@ export function ProxiesPanel({
           <div>
             <p className="eyebrow">Purchase a plan</p>
             <h1>Pricing Plans</h1>
-            <p>
-              Choose a category, select Standard, Premium, or Unlimited, then
-              continue to the checkout flow.
-            </p>
           </div>
           <button
             className="secondary-button"
@@ -649,66 +440,69 @@ export function ProxiesPanel({
           </button>
         </div>
 
-        <div className="plan-tabs" role="tablist" aria-label="Proxy categories">
+        <div className="plan-tabs proxy-category-tabs" role="group" aria-label="Proxy categories">
           {categoryTabs.map((category) => (
             <button
               key={category.id}
               className={activeCategory === category.id ? "active" : ""}
               type="button"
+              aria-pressed={activeCategory === category.id}
+              disabled={providerLoading}
               onClick={() => {
-                const nextPlan = plans.find(
-                  (plan) =>
-                    plan.category === category.id && plan.tier === activeTier
-                );
+                const nextPlan = plans.find((plan) => plan.category === category.id);
                 setActiveCategory(category.id);
                 setSelectedPlanId(nextPlan?.id || "");
+                setFilters(emptyFilters);
+                setAllocation({});
               }}
             >
-              {category.badge ? <span>{category.badge}</span> : null}
+              {category.id === "datacenter" ? <Server size={18} aria-hidden="true" /> : <Globe2 size={18} aria-hidden="true" />}
               {category.label}
             </button>
           ))}
         </div>
 
-        <div className="tier-tabs" role="tablist" aria-label="Plan tiers">
-          {tierTabs.map((tier) => (
-            <button
-              key={tier.id}
-              className={activeTier === tier.id ? "active" : ""}
-              type="button"
-              onClick={() => {
-                const nextPlan = plans.find(
-                  (plan) =>
-                    plan.category === activeCategory && plan.tier === tier.id
-                );
-                setActiveTier(tier.id);
-                setSelectedPlanId(nextPlan?.id || "");
-              }}
-            >
-              {tier.label}
-            </button>
-          ))}
+        <div className="plan-filters" aria-label="Plan filters">
+          {([
+            { key: "days", label: "Duration", format: durationLabel },
+            { key: "ipCount", label: "IP Count", format: (value: number) => `${value.toLocaleString("en-US")} IPs` },
+            { key: "bandwidthGb", label: "Bandwidth", format: bandwidthLabel },
+          ] as Array<{ key: keyof PlanFilters; label: string; format: (value: number) => string }>).map(({ key, label, format }) => {
+            const values = filterValues(categoryPlans, key);
+            if (!values.length || (key === "ipCount" && activeCategory !== "datacenter")) return null;
+            return (
+              <section className="plan-filter-section" key={key} aria-label={label}>
+                <div className="plan-filter-heading"><h2>{label}</h2><span className="filter-selection">{filters[key] === null ? "All" : format(filters[key])}</span></div>
+                <div className={`plan-filter-options ${key === "ipCount" ? "ip-count-options" : ""}`} role="group" aria-label={label}>
+                  {[null, ...values].map(value => {
+                    const selected = filters[key] === value;
+                    const available = value === null || categoryPlans.some(plan => matchesFilters(plan, { ...filters, [key]: value }));
+                    return <button type="button" key={value ?? "all"} className={selected ? "active" : ""} aria-pressed={selected} disabled={providerLoading || !available} onClick={() => { setFilters(current => ({ ...current, [key]: value })); setAllocation({}); }}>{value === null ? "All" : format(value)}</button>;
+                  })}
+                </div>
+              </section>
+            );
+          })}
+          {activeCategory === "datacenter" && categoryPlans.length > 0 ? <CountryAllocation countries={countries} target={allocationTarget} value={allocation} onChange={setAllocation} loading={countriesLoading} onRefresh={loadCountries} /> : null}
         </div>
 
         <div className="pricing-layout">
           <div className="pricing-main">
-            <h2>{visiblePlanLabel(activeCategory, activeTier)} Plans</h2>
+            <div className="plan-results-heading"><h2>{visiblePlanLabel(activeCategory)} Plans</h2><button type="button" className="filter-reset" disabled={Object.values(filters).every(value => value === null)} onClick={() => { setFilters(emptyFilters); setAllocation({}); }}>Reset filters</button></div>
 
             <div className="plan-grid">
               {visiblePlans.length ? (
-                visiblePlans.map((plan) => (
+                visiblePlans.map((plan) => {
+                  const stockReady = plan.category !== "datacenter" || (!countriesLoading && countryCapacity >= (plan.ipCount ?? 0));
+                  return (
                   <article
                     key={plan.id}
                     className={`plan-card ${
                       selectedPlanId === plan.id ? "selected" : ""
                     }`}
                   >
-                    {plan.popular ? (
-                      <span className="plan-badge">Popular</span>
-                    ) : null}
                     <div className="plan-card-row">
                       <h3>{plan.name}</h3>
-                      <p>{plan.description}</p>
                       <div className="plan-price">
                         <span>$</span>
                         <strong>
@@ -720,22 +514,24 @@ export function ProxiesPanel({
 
                     <div className="plan-meta">
                       <span>
-                        {plan.quantity} {plan.unit}
+                        {plan.quantity.toLocaleString("en-US")} {plan.unit}
                       </span>
-                      <span>Available now</span>
+                      <span>{plan.category === "datacenter" && countriesLoading ? "Checking stock" : stockReady ? "Available now" : "Currently unavailable"}</span>
+                      {plan.bandwidthGb !== null ? <span>{bandwidthLabel(plan.bandwidthGb)}</span> : null}
                     </div>
 
                     <button
                       className="primary-button"
                       type="button"
-                      disabled={loading}
+                      disabled={loading || !stockReady}
                       onClick={() => openCheckout(plan)}
                     >
                       <ShoppingCart aria-hidden="true" size={17} />
                       Proceed to Checkout
                     </button>
                   </article>
-                ))
+                  );
+                })
               ) : (
                 <p className="empty-plan-state">
                   {providerLoading

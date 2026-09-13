@@ -12,6 +12,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -30,12 +32,38 @@ public class CatProxiesApiService {
     }
 
     public Object getStore(String proxyType) {
-        return request(
-                HttpMethod.GET,
-                "/store",
-                proxyType == null || proxyType.isBlank() ? null : Map.of("proxyType", proxyType),
-                null
-        );
+        Map<String, String> query = new HashMap<>(Map.of("page", "1", "pageSize", "100"));
+        if (proxyType != null && !proxyType.isBlank()) query.put("proxyType", proxyType);
+        Object response = request(HttpMethod.GET, "/store", query, null);
+        if (!(response instanceof Map<?, ?> root) || !(root.get("payload") instanceof Map<?, ?> payload)
+                || !(payload.get("products") instanceof List<?> firstPage)) return response;
+
+        Map<?, ?> pagination = root.get("pagination") instanceof Map<?, ?> map ? map : Map.of();
+        int totalPages = pagination.get("totalPages") == null ? 1 : Integer.parseInt(pagination.get("totalPages").toString());
+        if (totalPages < 0 || totalPages > 1000 || (totalPages == 0 && !firstPage.isEmpty())) throw new IllegalStateException("Invalid provider catalog pagination.");
+        List<Object> products = new ArrayList<>(firstPage);
+        for (int page = 2; page <= totalPages; page++) {
+            query.put("page", Integer.toString(page));
+            Object next = request(HttpMethod.GET, "/store", query, null);
+            if (!(next instanceof Map<?, ?> nextRoot) || !(nextRoot.get("payload") instanceof Map<?, ?> nextPayload)
+                    || !(nextPayload.get("products") instanceof List<?> nextProducts)) {
+                throw new IllegalStateException("Unable to load the complete provider catalog.");
+            }
+            products.addAll(nextProducts);
+        }
+        Map<String, Object> result = copyMap(root);
+        Map<String, Object> combinedPayload = copyMap(payload);
+        combinedPayload.put("products", products);
+        combinedPayload.put("totalProducts", products.size());
+        result.put("payload", combinedPayload);
+        result.put("pagination", Map.of("page", 1, "pageSize", products.size(), "totalPages", 1, "totalItems", products.size()));
+        return result;
+    }
+
+    private Map<String, Object> copyMap(Map<?, ?> source) {
+        Map<String, Object> result = new HashMap<>();
+        source.forEach((key, value) -> result.put(key.toString(), value));
+        return result;
     }
 
     public Object getServers() {

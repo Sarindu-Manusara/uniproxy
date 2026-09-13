@@ -9,7 +9,6 @@ import {
   ExternalLink,
   LayoutDashboard,
   LogOut,
-  MessageCircle,
   PackageCheck,
   RefreshCw,
   ReceiptText,
@@ -150,19 +149,6 @@ export function AppShell({
             My Account
             <ChevronDown aria-hidden="true" className="nav-chevron" size={18} />
           </button>
-
-          <a
-            className="nav-external"
-            href="https://discord.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <span className="nav-icon">
-              <MessageCircle aria-hidden="true" size={22} />
-            </span>
-            Discord Server
-            <ExternalLink aria-hidden="true" className="nav-chevron" size={17} />
-          </a>
 
           <a
             className="nav-external"
