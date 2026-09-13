@@ -1,4 +1,4 @@
-import type { AdminUser, Profile, Transaction, UserProxy } from "./types";
+import type { AdminUser, LoginSession, Profile, Transaction, UserProxy } from "./types";
 
 const fallbackBaseUrl = "http://localhost:8080";
 
@@ -10,6 +10,8 @@ type ApiOptions = {
   token?: string | null;
   body?: unknown;
   query?: Record<string, string | number>;
+  timeoutMs?: number;
+  timeoutMessage?: string;
 };
 
 export class ApiError extends Error {
@@ -42,35 +44,79 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     headers.Authorization = `Bearer ${options.token}`;
   }
 
-  const response = await fetch(url.toString(), {
-    method: options.method || "GET",
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    cache: "no-store",
-  });
+  const controller = options.timeoutMs ? new AbortController() : null;
+  const timeoutId = controller
+    ? setTimeout(() => controller.abort(), options.timeoutMs)
+    : undefined;
 
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  try {
+    const response = await fetch(url.toString(), {
+      method: options.method || "GET",
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      cache: "no-store",
+      signal: controller?.signal,
+    });
 
-  if (!response.ok) {
-    const message =
-      typeof payload === "string" && payload.trim()
-        ? payload
-        : `Request failed with status ${response.status}`;
-    throw new ApiError(response.status, message, payload);
+    const contentType = response.headers.get("content-type") || "";
+    const payload = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+
+    if (!response.ok) {
+      const message =
+        typeof payload === "string" && payload.trim()
+          ? payload
+          : `Request failed with status ${response.status}`;
+      throw new ApiError(response.status, message, payload);
+    }
+
+    return payload as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(
+        408,
+        options.timeoutMessage || "The request timed out. Please try again.",
+        null
+      );
+    }
+
+    throw error;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
-
-  return payload as T;
 }
 
+let backendWarmup: Promise<void> | null = null;
+
 export const api = {
-  login: (username: string, password: string) =>
-    request<string>("/api/auth/login", {
+  prepareLogin: () => {
+    if (!backendWarmup) {
+      backendWarmup = request("/api/health", { timeoutMs: 60000 })
+        .then(() => undefined)
+        .catch(() => undefined)
+        .finally(() => {
+          backendWarmup = null;
+        });
+    }
+
+    return backendWarmup;
+  },
+
+  login: async (username: string, password: string): Promise<LoginSession> => {
+    const response = await request<LoginSession | string>("/api/auth/login", {
       method: "POST",
       body: { username, password },
-    }),
+      query: { includeProfile: "true" },
+      timeoutMs: 5000,
+      timeoutMessage: "Login is taking too long. Please try again in a moment.",
+    });
+
+    // Existing deployments return just the token until the backend is updated.
+    return typeof response === "string" ? { token: response, profile: null } : response;
+  },
 
   register: (username: string, email: string, password: string) =>
     request<string>("/api/auth/register", {

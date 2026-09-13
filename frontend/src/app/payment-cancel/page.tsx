@@ -7,7 +7,7 @@ export default function PaymentCancelPage() {
     <main className="payment-result-page">
       <section className="payment-result-card cancelled">
         <div className="payment-result-logo">
-          <Image src="/uniproxies-logo.png" alt="" width={828} height={828} />
+          <Image src="/uniproxy-logo.png" alt="" width={500} height={500} />
         </div>
         <XCircle aria-hidden="true" size={42} />
         <p className="eyebrow">Payment cancelled</p>

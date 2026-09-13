@@ -60,11 +60,11 @@ export function AppShell({
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-mark">
-            <Image src="/uniproxies-logo.png" alt="" width={828} height={828} />
+            <Image src="/uniproxy-logo.png" alt="" width={500} height={500} />
           </div>
           <div>
             <p className="eyebrow">UniProxy</p>
-            <strong>Operations</strong>
+            <strong>Proxy Network</strong>
           </div>
         </div>
 

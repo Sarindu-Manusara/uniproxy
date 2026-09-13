@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:api": "node --test tests/api.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

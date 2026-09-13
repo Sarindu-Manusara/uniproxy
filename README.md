@@ -144,3 +144,32 @@ If you do not use the Blueprint:
 10. Add `NEXT_PUBLIC_API_BASE_URL` pointing to the backend URL.
 
 The backend binds to Render's `PORT` environment variable automatically and falls back to `8080` locally.
+
+## Login Performance
+
+The frontend prepares the backend when the login page opens. Login requests use
+`POST /api/auth/login?includeProfile=true`, returning the token and account profile
+from one database lookup. This avoids a second profile request before showing the
+dashboard. Other dashboard panels load when opened. Legacy clients can still use
+`POST /api/auth/login` to receive only the token.
+
+Deploy the backend and frontend changes to enable the faster flow. Render's Free
+web services sleep after 15 minutes without traffic and can take about a minute
+to wake up. Background preparation helps while a visitor fills in the login form,
+but consistently fast login requires an always-on backend compute plan. Change
+the backend service's instance type in Render; upgrading only the workspace does
+not prevent the service from sleeping. See https://render.com/docs/free.
+
+Run the login checks locally:
+
+```bash
+cd backend
+sh mvnw test -Dspring.profiles.active=local -Ddebug=false
+```
+
+```bash
+cd frontend
+npm run test:api
+npm run lint
+npm run build
+```

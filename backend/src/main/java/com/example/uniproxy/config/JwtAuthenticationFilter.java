@@ -1,5 +1,7 @@
 package com.example.uniproxy.config;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,10 +33,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
-            if (jwtUtils.validateToken(token)) {
-                String username = jwtUtils.getUsernameFromToken(token);
-                String role = jwtUtils.getRoleFromToken(token);
-
+            try {
+                Claims claims = jwtUtils.getClaimsFromToken(token);
+                String username = claims.getSubject();
+                String role = claims.get("role", String.class);
 
                 List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
 
@@ -43,6 +45,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (JwtException | IllegalArgumentException exception) {
+                SecurityContextHolder.clearContext();
             }
         }
         filterChain.doFilter(request, response);
