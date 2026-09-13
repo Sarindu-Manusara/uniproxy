@@ -11,6 +11,7 @@ export type ProxyPlan = {
   days: number | null;
   ipCount: number | null;
   bandwidthGb: number | null;
+  speedMbps: number | null;
   description: string;
   features: string[];
   providerProxyType: string;
@@ -21,11 +22,17 @@ export type PlanFilters = {
   days: number | null;
   ipCount: number | null;
   bandwidthGb: number | null;
+  speedMbps: number | null;
 };
 
 export type CountryStock = { code: string; name: string; available: number };
 export type CountryAllocation = Record<string, number>;
-export const emptyFilters: PlanFilters = { days: null, ipCount: null, bandwidthGb: null };
+export const emptyFilters: PlanFilters = {
+  days: null,
+  ipCount: null,
+  bandwidthGb: null,
+  speedMbps: null,
+};
 
 export function unwrapArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
@@ -68,6 +75,12 @@ export function bandwidthLabel(gb: number): string {
   return gb >= 1000 && gb % 1000 === 0 ? `${gb / 1000}TB` : `${gb}GB`;
 }
 
+export function speedLabel(mbps: number): string {
+  return mbps >= 1000 && mbps % 1000 === 0
+    ? `${mbps / 1000}Gbps`
+    : `${mbps}Mbps`;
+}
+
 export function parseProviderPlan(value: unknown): ProxyPlan | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
@@ -90,14 +103,14 @@ export function parseProviderPlan(value: unknown): ProxyPlan | null {
   const ipCount = rawIps && Number.isInteger(rawIps) ? rawIps : null;
   const bandwidthMatch = name.match(/\b([\d.]+)\s*(GB|TB)\b/i);
   const bandwidthGb = firstNumber(record, ["bandwidthGb", "bandwidth", "traffic"]) ?? (bandwidthMatch ? Number(bandwidthMatch[1]) * (bandwidthMatch[2].toUpperCase() === "TB" ? 1000 : 1) : /\bunlimited\b/i.test(name) ? 0 : null);
-  const speed = firstNumber(record, ["speed", "speedMbps"]);
-  if (!days || (category === "datacenter" && !ipCount) || bandwidthGb === null || (category === "ipv6" && bandwidthGb === 0 && !speed)) return null;
-  const quantity = category === "datacenter" ? ipCount ?? 1 : bandwidthGb && bandwidthGb > 0 ? bandwidthGb : speed || 1;
-  const unit = category === "datacenter" ? "IPs" : bandwidthGb && bandwidthGb > 0 ? "GB" : speed ? "Mbps" : "Plan";
+  const speedMbps = firstNumber(record, ["speed", "speedMbps"]);
+  if (!days || (category === "datacenter" && !ipCount) || bandwidthGb === null || (category === "ipv6" && bandwidthGb === 0 && !speedMbps)) return null;
+  const quantity = category === "datacenter" ? ipCount ?? 1 : bandwidthGb && bandwidthGb > 0 ? bandwidthGb : speedMbps || 1;
+  const unit = category === "datacenter" ? "IPs" : bandwidthGb && bandwidthGb > 0 ? "GB" : speedMbps ? "Mbps" : "Plan";
 
   return {
     id: `provider-${packageId}`, providerPackageId: packageId, category, name, price,
-    days, ipCount, bandwidthGb, quantity, unit,
+    days, ipCount, bandwidthGb, speedMbps, quantity, unit,
     term: days ? `${days} ${days === 1 ? "day" : "days"}` : text(record.period) || text(record.duration) || "Package",
     providerProxyType: category === "datacenter" ? "DatacenterP" : "Ipv6p",
     description: "", features: [],

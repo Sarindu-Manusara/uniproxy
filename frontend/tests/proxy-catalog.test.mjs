@@ -32,10 +32,22 @@ test("explicit title metadata is supported without inventing missing values", ()
 test("IPv6 zero bandwidth means unlimited, not missing", () => {
   const plan = catalog.parseProviderPlan({ packageId: "ipv6", title: "IPv6", proxyType: "Ipv6p", price: 10, days: 1, bandwidth: "0", speed: 1000, ips: null });
   assert.equal(plan.bandwidthGb, 0);
+  assert.equal(plan.speedMbps, 1000);
   assert.equal(plan.unit, "Mbps");
   assert.equal(plan.quantity, 1000);
   assert.equal(plan.ipCount, null);
   assert.equal(catalog.bandwidthLabel(0), "Unlimited");
+  assert.equal(catalog.speedLabel(1000), "1Gbps");
+});
+
+test("IPv6 modes use only real metered or unlimited provider packages", () => {
+  const metered = catalog.parseProviderPlan({ packageId: "ipv6-metered", title: "IPv6 250GB", proxyType: "Ipv6p", price: 10, days: 30, bandwidth: 250 });
+  const unlimited = catalog.parseProviderPlan({ packageId: "ipv6-unlimited", title: "IPv6 Unlimited", proxyType: "Ipv6p", price: 20, days: 30, bandwidth: 0, speed: 1000 });
+  const plans = [metered, unlimited];
+  assert.deepEqual(catalog.filterValues(plans, "bandwidthGb"), [250, 0]);
+  assert.deepEqual(catalog.filterValues(plans.filter((plan) => plan.bandwidthGb === 0), "speedMbps"), [1000]);
+  assert.equal(plans.filter((plan) => plan.bandwidthGb > 0).length, 1);
+  assert.equal(plans.filter((plan) => plan.bandwidthGb === 0).length, 1);
 });
 
 test("unsupported, hidden, invalid and unpurchasable products are excluded", () => {

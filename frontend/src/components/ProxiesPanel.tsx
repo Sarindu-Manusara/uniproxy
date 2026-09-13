@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { api, formatCurrency, formatDate } from "@/lib/api";
 import type { UserProxy } from "@/lib/types";
-import { allocationValid, bandwidthLabel, durationLabel, emptyFilters, filterValues, matchesFilters, parseCountryStock, parseProviderPlan, unwrapArray } from "@/lib/proxy-catalog";
+import { allocationValid, bandwidthLabel, durationLabel, emptyFilters, filterValues, matchesFilters, parseCountryStock, parseProviderPlan, speedLabel, unwrapArray } from "@/lib/proxy-catalog";
 import type { CountryAllocation as Allocation, CountryStock, PlanCategory, PlanFilters, ProxyPlan } from "@/lib/proxy-catalog";
 import { CountryAllocation } from "./CountryAllocation";
 import { useToast } from "./ToastProvider";
@@ -28,6 +28,7 @@ type ProxiesPanelProps = {
 };
 
 type PaymentMethod = "Balance" | "Crypto";
+type Ipv6PlanMode = "bandwidth" | "unlimited";
 
 type ProviderStoreStatus = Record<PlanCategory, boolean>;
 
@@ -85,6 +86,8 @@ export function ProxiesPanel({
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [checkoutPlan, setCheckoutPlan] = useState<ProxyPlan | null>(null);
   const [filters, setFilters] = useState<PlanFilters>(emptyFilters);
+  const [ipv6PlanMode, setIpv6PlanMode] =
+    useState<Ipv6PlanMode>("bandwidth");
   const [countries, setCountries] = useState<CountryStock[]>([]);
   const [allocation, setAllocation] = useState<Allocation>({});
   const [countriesLoading, setCountriesLoading] = useState(false);
@@ -106,7 +109,18 @@ export function ProxiesPanel({
     () => plans.filter((plan) => plan.category === activeCategory),
     [activeCategory, plans]
   );
-  const visiblePlans = useMemo(() => categoryPlans.filter(plan => matchesFilters(plan, filters)), [categoryPlans, filters]);
+  const modePlans = useMemo(() => {
+    if (activeCategory !== "ipv6") return categoryPlans;
+    return categoryPlans.filter((plan) =>
+      ipv6PlanMode === "unlimited"
+        ? plan.bandwidthGb === 0
+        : plan.bandwidthGb !== null && plan.bandwidthGb > 0
+    );
+  }, [activeCategory, categoryPlans, ipv6PlanMode]);
+  const visiblePlans = useMemo(
+    () => modePlans.filter((plan) => matchesFilters(plan, filters)),
+    [filters, modePlans]
+  );
   const allocationPlan = checkoutPlan ?? visiblePlans.find(plan => plan.id === selectedPlanId) ?? visiblePlans[0];
   const allocationTarget = allocationPlan?.ipCount ?? 0;
   const countryCapacity = useMemo(() => countries.reduce((sum, country) => sum + country.available, 0), [countries]);
@@ -176,8 +190,18 @@ export function ProxiesPanel({
       }));
 
       if (parsed.length) {
+        const defaultPlans =
+          activeCategory === "ipv6"
+            ? parsed.filter((plan) => plan.bandwidthGb !== null && plan.bandwidthGb > 0)
+            : parsed;
+        const selectablePlans = defaultPlans.length ? defaultPlans : parsed;
+        if (activeCategory === "ipv6") {
+          setIpv6PlanMode(defaultPlans.length ? "bandwidth" : "unlimited");
+        }
         setSelectedPlanId((current) =>
-          parsed.some((plan) => plan.id === current) ? current : parsed[0].id
+          selectablePlans.some((plan) => plan.id === current)
+            ? current
+            : selectablePlans[0].id
         );
         toast.success("Plans refreshed", `${parsed.length} plans loaded.`);
       } else {
@@ -449,10 +473,28 @@ export function ProxiesPanel({
               aria-pressed={activeCategory === category.id}
               disabled={providerLoading}
               onClick={() => {
-                const nextPlan = plans.find((plan) => plan.category === category.id);
+                const categoryPlanList = plans.filter(
+                  (plan) => plan.category === category.id
+                );
+                const nextIpv6Mode =
+                  category.id === "ipv6" &&
+                  !categoryPlanList.some(
+                    (plan) =>
+                      plan.bandwidthGb !== null && plan.bandwidthGb > 0
+                  )
+                    ? "unlimited"
+                    : "bandwidth";
+                const nextPlan = categoryPlanList.find((plan) =>
+                  category.id !== "ipv6"
+                    ? true
+                    : nextIpv6Mode === "unlimited"
+                      ? plan.bandwidthGb === 0
+                      : plan.bandwidthGb !== null && plan.bandwidthGb > 0
+                );
                 setActiveCategory(category.id);
                 setSelectedPlanId(nextPlan?.id || "");
                 setFilters(emptyFilters);
+                setIpv6PlanMode(nextIpv6Mode);
                 setAllocation({});
               }}
             >
@@ -462,21 +504,67 @@ export function ProxiesPanel({
           ))}
         </div>
 
+        {activeCategory === "ipv6" && categoryPlans.length > 0 ? (
+          <div
+            className="plan-tabs ipv6-mode-tabs"
+            role="group"
+            aria-label="IPv6 plan type"
+          >
+            {([
+              { id: "bandwidth", label: "Bandwidth" },
+              { id: "unlimited", label: "Unlimited" },
+            ] as Array<{ id: Ipv6PlanMode; label: string }>).map((mode) => {
+              const available = categoryPlans.some((plan) =>
+                mode.id === "unlimited"
+                  ? plan.bandwidthGb === 0
+                  : plan.bandwidthGb !== null && plan.bandwidthGb > 0
+              );
+              return (
+                <button
+                  key={mode.id}
+                  className={ipv6PlanMode === mode.id ? "active" : ""}
+                  type="button"
+                  aria-pressed={ipv6PlanMode === mode.id}
+                  disabled={providerLoading || !available}
+                  onClick={() => {
+                    const nextPlan = categoryPlans.find((plan) =>
+                      mode.id === "unlimited"
+                        ? plan.bandwidthGb === 0
+                        : plan.bandwidthGb !== null && plan.bandwidthGb > 0
+                    );
+                    setIpv6PlanMode(mode.id);
+                    setSelectedPlanId(nextPlan?.id || "");
+                    setFilters(emptyFilters);
+                  }}
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         <div className="plan-filters" aria-label="Plan filters">
           {([
             { key: "days", label: "Duration", format: durationLabel },
             { key: "ipCount", label: "IP Count", format: (value: number) => `${value.toLocaleString("en-US")} IPs` },
             { key: "bandwidthGb", label: "Bandwidth", format: bandwidthLabel },
+            { key: "speedMbps", label: "Speed", format: speedLabel },
           ] as Array<{ key: keyof PlanFilters; label: string; format: (value: number) => string }>).map(({ key, label, format }) => {
-            const values = filterValues(categoryPlans, key);
-            if (!values.length || (key === "ipCount" && activeCategory !== "datacenter")) return null;
+            const values = filterValues(modePlans, key);
+            if (
+              !values.length ||
+              (key === "ipCount" && activeCategory !== "datacenter") ||
+              (key === "bandwidthGb" && activeCategory === "ipv6" && ipv6PlanMode === "unlimited") ||
+              (key === "speedMbps" && (activeCategory !== "ipv6" || ipv6PlanMode !== "unlimited"))
+            ) return null;
             return (
               <section className="plan-filter-section" key={key} aria-label={label}>
                 <div className="plan-filter-heading"><h2>{label}</h2><span className="filter-selection">{filters[key] === null ? "All" : format(filters[key])}</span></div>
                 <div className={`plan-filter-options ${key === "ipCount" ? "ip-count-options" : ""}`} role="group" aria-label={label}>
                   {[null, ...values].map(value => {
                     const selected = filters[key] === value;
-                    const available = value === null || categoryPlans.some(plan => matchesFilters(plan, { ...filters, [key]: value }));
+                    const available = value === null || modePlans.some(plan => matchesFilters(plan, { ...filters, [key]: value }));
                     return <button type="button" key={value ?? "all"} className={selected ? "active" : ""} aria-pressed={selected} disabled={providerLoading || !available} onClick={() => { setFilters(current => ({ ...current, [key]: value })); setAllocation({}); }}>{value === null ? "All" : format(value)}</button>;
                   })}
                 </div>
