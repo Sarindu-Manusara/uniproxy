@@ -7,7 +7,7 @@ export default function PaymentSuccessPage() {
     <main className="payment-result-page">
       <section className="payment-result-card">
         <div className="payment-result-logo">
-          <Image src="/uniproxies-logo.png" alt="" width={828} height={828} />
+          <Image src="/uniproxy-logo.png" alt="" width={500} height={500} />
         </div>
         <CheckCircle2 aria-hidden="true" size={42} />
         <p className="eyebrow">Payment successful</p>

@@ -2,12 +2,16 @@ package com.example.uniproxy.service;
 
 import com.example.uniproxy.config.JwtUtils;
 import com.example.uniproxy.dto.LoginRequest;
+import com.example.uniproxy.dto.LoginResponse;
+import com.example.uniproxy.dto.UserProfileResponse;
 import com.example.uniproxy.dto.UserRegistrationRequest;
 import com.example.uniproxy.model.User;
 import com.example.uniproxy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 
@@ -41,13 +45,24 @@ public class UserService {
 
 
     public String login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        return loginWithProfile(request).token();
+    }
 
-        if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return jwtUtils.generateToken(user.getUsername(), user.getRole());
-        } else {
-            throw new RuntimeException("Invalid password");
+    public LoginResponse loginWithProfile(LoginRequest request) {
+        if (request.getUsername() == null || request.getPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password are required");
         }
+
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        }
+
+        return new LoginResponse(
+                jwtUtils.generateToken(user.getUsername(), user.getRole()),
+                new UserProfileResponse(user.getUsername(), user.getEmail(), user.getBalance(), user.getRole())
+        );
     }
 }

@@ -21,9 +21,9 @@ public class AuthController {
 
     // Login Endpoint
     @PostMapping("/login")
-    public String login(@RequestBody LoginRequest request) {
-
-        return userService.login(request);
+    public Object login(@RequestBody LoginRequest request,
+                        @RequestParam(defaultValue = "false") boolean includeProfile) {
+        return includeProfile ? userService.loginWithProfile(request) : userService.login(request);
     }
     @GetMapping("/test-secure")
     public String testSecure() {

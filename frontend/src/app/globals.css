@@ -24,25 +24,25 @@
 }
 
 :root {
-  --bg: #f3fbf6;
-  --bg-soft: #fbfffd;
+  --bg: #f7f5ff;
+  --bg-soft: #fdfcff;
   --surface: rgba(255, 255, 255, 0.88);
   --surface-solid: #ffffff;
-  --surface-muted: #eefaf3;
-  --text: #07170f;
-  --muted: #596b62;
-  --muted-soft: #83938b;
-  --line: rgba(5, 192, 103, 0.14);
-  --line-strong: rgba(5, 192, 103, 0.24);
-  --primary: #05c067;
-  --primary-strong: #049e55;
-  --primary-soft: #e8fff3;
-  --primary-faint: rgba(5, 192, 103, 0.08);
-  --accent: #13d982;
+  --surface-muted: #f5f2ff;
+  --text: #15111f;
+  --muted: #655f70;
+  --muted-soft: #918b9c;
+  --line: rgba(107, 65, 222, 0.14);
+  --line-strong: rgba(107, 65, 222, 0.24);
+  --primary: #6b41de;
+  --primary-strong: #4f2ab7;
+  --primary-soft: #f5f2ff;
+  --primary-faint: rgba(107, 65, 222, 0.08);
+  --accent: #6b41de;
   --danger: #c32924;
   --danger-soft: #fff0ef;
-  --success: #057a43;
-  --success-soft: #e8fff3;
+  --success: #6b41de;
+  --success-soft: #f5f2ff;
   --warning: #a15c07;
   --font-ui: "Satoshi", "Satoshi Fallback", "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
@@ -53,8 +53,8 @@
   --radius-lg: 24px;
   --radius-xl: 32px;
   --shadow-sm: 0 1px 2px rgba(18, 8, 31, 0.05);
-  --shadow-md: 0 16px 42px -30px rgba(5, 192, 103, 0.34);
-  --shadow-lg: 0 28px 80px -48px rgba(5, 192, 103, 0.38);
+  --shadow-md: 0 16px 42px -30px rgba(107, 65, 222, 0.34);
+  --shadow-lg: 0 28px 80px -48px rgba(107, 65, 222, 0.38);
   --blur: blur(22px) saturate(1.25);
 }
 
@@ -74,8 +74,8 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at 14% -8%, rgba(5, 192, 103, 0.12), transparent 34rem),
-    radial-gradient(circle at 92% 6%, rgba(5, 192, 103, 0.1), transparent 30rem),
+    radial-gradient(circle at 14% -8%, rgba(107, 65, 222, 0.12), transparent 34rem),
+    radial-gradient(circle at 92% 6%, rgba(107, 65, 222, 0.1), transparent 30rem),
     linear-gradient(180deg, #ffffff 0, var(--bg) 68rem);
   font-family: var(--font-ui);
   font-feature-settings: "kern";
@@ -118,7 +118,7 @@ svg {
 .auth-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 76% 8%, rgba(5, 192, 103, 0.14), transparent 28rem),
+    radial-gradient(circle at 76% 8%, rgba(107, 65, 222, 0.14), transparent 28rem),
     linear-gradient(180deg, #ffffff 0, var(--bg-soft) 34rem, var(--bg) 100%);
 }
 
@@ -192,8 +192,6 @@ svg {
   height: 100%;
   object-fit: contain;
   padding: 4px;
-  filter: brightness(0) saturate(100%) invert(49%) sepia(98%) saturate(1306%)
-    hue-rotate(113deg) brightness(95%) contrast(96%);
 }
 
 .public-links,
@@ -235,7 +233,7 @@ svg {
 .public-actions a:last-child {
   color: #ffffff;
   background: var(--primary);
-  box-shadow: 0 12px 26px -18px rgba(5, 192, 103, 0.46);
+  box-shadow: 0 12px 26px -18px rgba(107, 65, 222, 0.46);
 }
 
 .landing-container {
@@ -269,9 +267,7 @@ svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(49%) sepia(98%) saturate(1306%)
-    hue-rotate(113deg) brightness(95%) contrast(96%)
-    drop-shadow(0 20px 34px rgba(5, 192, 103, 0.2));
+  filter: drop-shadow(0 20px 34px rgba(107, 65, 222, 0.2));
   animation: unicorn-bob 3.2s ease-in-out infinite;
 }
 
@@ -412,7 +408,7 @@ svg {
 .primary-button {
   color: #ffffff;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-strong) 100%);
-  box-shadow: 0 16px 30px -20px rgba(5, 192, 103, 0.46);
+  box-shadow: 0 16px 30px -20px rgba(107, 65, 222, 0.46);
 }
 
 .hero-link:hover,
@@ -434,7 +430,7 @@ svg {
 .hero-secondary:hover,
 .icon-button:hover,
 .external-link:hover {
-  border-color: rgba(5, 192, 103, 0.3);
+  border-color: rgba(107, 65, 222, 0.3);
   background: var(--primary-soft);
 }
 
@@ -453,7 +449,6 @@ svg {
 .auth-shell,
 .proxy-card,
 .quickstart-grid article,
-.price-card,
 .industry-grid article,
 .faq-list details,
 .metric-card,
@@ -488,8 +483,8 @@ svg {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(rgba(5, 192, 103, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(5, 192, 103, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(107, 65, 222, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(107, 65, 222, 0.04) 1px, transparent 1px);
   background-size: 42px 42px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.82), transparent);
 }
@@ -521,7 +516,7 @@ svg {
   padding: 12px 13px;
   color: var(--primary);
   background: var(--primary-soft);
-  border: 1px solid rgba(5, 192, 103, 0.1);
+  border: 1px solid rgba(107, 65, 222, 0.1);
   border-radius: var(--radius-xs);
   font-family: var(--font-mono);
   font-size: 0.83rem;
@@ -603,7 +598,7 @@ svg {
   padding: 6px 10px;
   color: var(--primary);
   background: var(--primary-soft);
-  border: 1px solid rgba(5, 192, 103, 0.1);
+  border: 1px solid rgba(107, 65, 222, 0.1);
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -616,8 +611,8 @@ svg {
   display: grid;
   gap: 4px;
   padding: 4px;
-  background: rgba(5, 192, 103, 0.1);
-  border: 1px solid rgba(5, 192, 103, 0.08);
+  background: rgba(107, 65, 222, 0.1);
+  border: 1px solid rgba(107, 65, 222, 0.08);
   border-radius: 999px;
 }
 
@@ -646,7 +641,7 @@ svg {
 .plan-tabs button.active {
   color: var(--primary);
   background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 2px 10px rgba(5, 192, 103, 0.1);
+  box-shadow: 0 2px 10px rgba(107, 65, 222, 0.1);
   font-weight: 600;
 }
 
@@ -693,7 +688,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(5, 192, 103, 0.14);
+  box-shadow: 0 0 0 4px rgba(107, 65, 222, 0.14);
 }
 
 .wide-button {
@@ -771,7 +766,6 @@ textarea:focus {
 
 .two-column-copy,
 .section-title-row,
-.pricing-panel,
 .cta-band {
   display: grid;
   grid-template-columns: minmax(0, 0.84fr) minmax(0, 1fr);
@@ -782,7 +776,6 @@ textarea:focus {
 .two-column-copy h2,
 .section-title-row h2,
 .feature-band h2,
-.pricing-panel h2,
 .comparison-section h2,
 .cta-band h2,
 .faq-section h2,
@@ -801,7 +794,6 @@ textarea:focus {
 .two-column-copy p,
 .section-title-row p,
 .feature-band p,
-.pricing-panel p,
 .cta-band p,
 .faq-section p,
 .stack-section p {
@@ -894,7 +886,7 @@ textarea:focus {
   padding: 48px;
   color: var(--text);
   background:
-    radial-gradient(circle at 18% 18%, rgba(5, 192, 103, 0.11), transparent 24rem),
+    radial-gradient(circle at 18% 18%, rgba(107, 65, 222, 0.11), transparent 24rem),
     rgba(255, 255, 255, 0.78);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
@@ -915,7 +907,7 @@ textarea:focus {
   padding: 13px;
   color: #2b2039;
   background: var(--primary-soft);
-  border: 1px solid rgba(5, 192, 103, 0.14);
+  border: 1px solid rgba(107, 65, 222, 0.14);
   border-radius: var(--radius-md);
   font-weight: 600;
 }
@@ -965,7 +957,7 @@ textarea:focus {
 .industry-orbit::after {
   content: "";
   position: absolute;
-  border: 1px dashed rgba(5, 192, 103, 0.24);
+  border: 1px dashed rgba(107, 65, 222, 0.24);
   border-radius: 999px;
 }
 
@@ -981,8 +973,6 @@ textarea:focus {
   width: 72%;
   height: 72%;
   object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(49%) sepia(98%) saturate(1306%)
-    hue-rotate(113deg) brightness(95%) contrast(96%);
 }
 
 .industry-art > span {
@@ -992,7 +982,7 @@ textarea:focus {
   left: 24px;
   color: var(--primary);
   background: var(--primary-soft);
-  border: 1px solid rgba(5, 192, 103, 0.14);
+  border: 1px solid rgba(107, 65, 222, 0.14);
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 0.82rem;
@@ -1027,55 +1017,6 @@ textarea:focus {
   color: #ffffff;
   background: var(--primary);
   border-radius: 16px;
-}
-
-.pricing-panel {
-  margin: 0 0 72px;
-  padding: 48px;
-  color: #ffffff;
-  background:
-    radial-gradient(circle at 86% 4%, rgba(255, 255, 255, 0.2), transparent 22rem),
-    linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-}
-
-.pricing-panel .eyebrow {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-.pricing-panel p {
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.price-card {
-  display: grid;
-  gap: 12px;
-  padding: 26px;
-  color: var(--text);
-  border-radius: var(--radius-lg);
-}
-
-.price-card > span,
-.price-card p,
-.price-card div span {
-  color: var(--muted);
-}
-
-.price-card > strong {
-  font-size: clamp(2.4rem, 5vw, 3.5rem);
-  line-height: 1;
-}
-
-.price-card div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
 }
 
 .comparison-section h2,
@@ -1134,7 +1075,7 @@ textarea:focus {
 }
 
 .stack-logo-card:hover {
-  border-color: rgba(5, 192, 103, 0.3);
+  border-color: rgba(107, 65, 222, 0.3);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
@@ -1181,7 +1122,7 @@ textarea:focus {
 }
 
 .faq-list details[open] {
-  border-color: rgba(5, 192, 103, 0.26);
+  border-color: rgba(107, 65, 222, 0.26);
   background: rgba(255, 255, 255, 0.94);
 }
 
@@ -1305,7 +1246,7 @@ textarea:focus {
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr);
   background:
-    radial-gradient(circle at 0 0, rgba(5, 192, 103, 0.12), transparent 28rem),
+    radial-gradient(circle at 0 0, rgba(107, 65, 222, 0.12), transparent 28rem),
     linear-gradient(180deg, #ffffff 0, var(--bg) 100%);
 }
 
@@ -1721,7 +1662,7 @@ textarea:focus {
 .plan-filter-section { min-width: 0; padding: 22px 0; border-bottom: 1px solid var(--line); }
 .plan-filter-heading, .plan-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .plan-filter-heading h2 { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5; }
-.filter-selection { padding: 4px 10px; color: var(--primary); background: rgba(5, 192, 103, 0.08); border-radius: 6px; font-size: 0.8rem; white-space: nowrap; }
+.filter-selection { padding: 4px 10px; color: var(--primary); background: rgba(107, 65, 222, 0.08); border-radius: 6px; font-size: 0.8rem; white-space: nowrap; }
 .plan-filter-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .plan-filter-options.ip-count-options { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
 .plan-filter-options button { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 52px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.875rem; font-weight: 600; }
@@ -1811,8 +1752,8 @@ textarea:focus {
 }
 
 .plan-card.selected {
-  border-color: rgba(5, 192, 103, 0.38);
-  box-shadow: 0 18px 42px -32px rgba(5, 192, 103, 0.46);
+  border-color: rgba(107, 65, 222, 0.38);
+  box-shadow: 0 18px 42px -32px rgba(107, 65, 222, 0.46);
 }
 
 .plan-card-row {
@@ -1907,7 +1848,7 @@ textarea:focus {
   padding: 0 10px;
   color: var(--primary);
   background: var(--primary-soft);
-  border: 1px solid rgba(5, 192, 103, 0.1);
+  border: 1px solid rgba(107, 65, 222, 0.1);
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -2204,7 +2145,7 @@ tbody tr:last-child td {
 }
 
 tbody tr:hover td {
-  background: rgba(5, 192, 103, 0.04);
+  background: rgba(107, 65, 222, 0.04);
 }
 
 .empty-cell {
@@ -2312,7 +2253,7 @@ tbody tr:hover td {
   width: fit-content;
   color: var(--primary);
   background: var(--primary-soft);
-  border-color: rgba(5, 192, 103, 0.14);
+  border-color: rgba(107, 65, 222, 0.14);
 }
 
 .form-error,
@@ -2471,7 +2412,7 @@ tbody tr:hover td {
 }
 
 .toast-card.success {
-  border-color: rgba(5, 192, 103, 0.2);
+  border-color: rgba(107, 65, 222, 0.2);
 }
 
 .toast-card.success > svg {
@@ -2496,7 +2437,7 @@ tbody tr:hover td {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 50% 20%, rgba(5, 192, 103, 0.14), transparent 34rem),
+    radial-gradient(circle at 50% 20%, rgba(107, 65, 222, 0.14), transparent 34rem),
     linear-gradient(180deg, #ffffff 0, var(--bg) 100%);
 }
 
@@ -2663,7 +2604,6 @@ tbody tr:hover td {
   .two-column-copy,
   .section-title-row,
   .feature-band,
-  .pricing-panel,
   .cta-band,
   .industry-layout,
   .faq-section,
@@ -2692,7 +2632,6 @@ tbody tr:hover td {
   }
 
   .feature-band,
-  .pricing-panel,
   .cta-band {
     padding: 28px;
   }

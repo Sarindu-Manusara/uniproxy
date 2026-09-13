@@ -12,6 +12,7 @@ import java.util.Date;
 public class JwtUtils {
     private final long jwtExpirationMs;
     private final Key key;
+    private final JwtParser parser;
 
     public JwtUtils(
             @Value("${app.jwt.secret}") String jwtSecret,
@@ -19,6 +20,7 @@ public class JwtUtils {
     ) {
         this.jwtExpirationMs = jwtExpirationMs;
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        this.parser = Jwts.parserBuilder().setSigningKey(key).build();
     }
 
     public String generateToken(String username, String role) {
@@ -32,13 +34,16 @@ public class JwtUtils {
     }
 
     public String getUsernameFromToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody().getSubject();
+        return getClaimsFromToken(token).getSubject();
+    }
+
+    public Claims getClaimsFromToken(String token) {
+        return parser.parseClaimsJws(token).getBody();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            getClaimsFromToken(token);
             return true;
         } catch (Exception e) {
             return false;
@@ -46,7 +51,6 @@ public class JwtUtils {
     }
 
     public String getRoleFromToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build()
-                .parseClaimsJws(token).getBody().get("role", String.class);
+        return getClaimsFromToken(token).get("role", String.class);
     }
 }

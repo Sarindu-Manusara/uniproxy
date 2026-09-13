@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 import {
   ArrowRight,
@@ -8,41 +8,25 @@ import {
   Building2,
   Check,
   Database,
-  Globe2,
   Megaphone,
   Network,
   LogIn,
   Search,
   ShieldCheck,
-  Smartphone,
   Store,
-  Zap,
   UserPlus,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import type { Profile } from "@/lib/types";
 import { useToast } from "./ToastProvider";
 
 type AuthPanelProps = {
-  onAuthenticated: (token: string) => void;
+  onAuthenticated: (token: string, profile: Profile | null) => void;
 };
 
 type AuthMode = "login" | "register";
 
 const proxyProducts = [
-  {
-    icon: Globe2,
-    tag: "From $2.5/GB",
-    title: "Residential Proxies",
-    copy: "Real ISP-assigned IPs with rotating and sticky sessions across global locations.",
-    items: ["20M+ IP pool", "195 countries", "HTTP and SOCKS5"],
-  },
-  {
-    icon: Zap,
-    tag: "Unlimited bandwidth",
-    title: "Unlimited Residential",
-    copy: "Flat-rate access for sustained workloads where bandwidth costs need to stay predictable.",
-    items: ["1M+ peers", "Unmetered traffic", "Country targeting"],
-  },
   {
     icon: Database,
     tag: "From $4.5/day",
@@ -51,34 +35,20 @@ const proxyProducts = [
     items: ["Fast response", "High volume", "Dedicated options"],
   },
   {
-    icon: Smartphone,
-    tag: "From $4.5/GB",
-    title: "Mobile Proxies",
-    copy: "Carrier-grade mobile IPs for workflows that need strong mobile reputation.",
-    items: ["4G and 5G", "Auto rotation", "Sticky sessions"],
-  },
-  {
     icon: Network,
     tag: "From $8/day",
     title: "IPv6 Proxies",
     copy: "Scalable IPv6 infrastructure for modern apps that need efficient IP diversity.",
     items: ["Large IPv6 pool", "Native IPv6 support", "High-volume deployment"],
   },
-  {
-    icon: ShieldCheck,
-    tag: "Static residential IPs",
-    title: "ISP Proxies",
-    copy: "Static residential trust with datacenter speed for long-running account sessions.",
-    items: ["Clean static IPs", "1-3 month sessions", "Unlimited bandwidth"],
-  },
 ];
 
 const enterpriseFeatures = [
-  "Backconnect residential infrastructure",
+  "Reliable datacenter infrastructure",
   "Strict no-log account privacy",
   "Daily technical support",
   "Optimized routing and bandwidth",
-  "Global targeting controls",
+  "Location targeting controls",
   "99.9% uptime guarantee",
 ];
 
@@ -89,7 +59,6 @@ const stackLogos = [
   ["lalicat", "Lalicat"],
   ["dolphinantybrowser", "Dolphin Anty"],
   ["selenium", "Selenium"],
-  ["gmail", "Gmail"],
   ["mulogin", "MuLogin"],
   ["incogniton", "Incogniton"],
   ["kameleo", "Kameleo"],
@@ -127,7 +96,7 @@ const industryCards = [
   {
     icon: Megaphone,
     title: "Social Media Marketing",
-    copy: "Manage account workflows with rotating residential sessions that preserve identity consistency.",
+    copy: "Manage account workflows with stable proxy sessions that preserve identity consistency.",
   },
   {
     icon: BarChart3,
@@ -142,7 +111,7 @@ const industryCards = [
   {
     icon: Search,
     title: "SEO Monitoring",
-    copy: "Retrieve localized search results and rank data from specific countries, cities, or ISPs.",
+    copy: "Retrieve localized search results and rank data from supported countries and cities.",
   },
   {
     icon: Building2,
@@ -154,7 +123,7 @@ const industryCards = [
 const faqs = [
   [
     "What proxy protocols are supported?",
-    "UNIPROXIES supports HTTP, HTTPS, and SOCKS5 credentials from one client dashboard.",
+    "UniProxy supports HTTP, HTTPS, and SOCKS5 credentials from one client dashboard.",
   ],
   [
     "Can I keep the same IP for a session?",
@@ -166,7 +135,7 @@ const faqs = [
   ],
   [
     "Which targets can I select?",
-    "Country targeting is available in the dashboard, with room to expand into city, state, and ISP controls.",
+    "Country targeting is available in the dashboard, with room to expand into city and state controls.",
   ],
 ];
 
@@ -179,6 +148,9 @@ const cryptoPayments = [
   ["solana", "Solana"],
 ];
 
+const telegramUrl =
+  process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxy";
+
 export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [username, setUsername] = useState("");
@@ -186,6 +158,10 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+
+  useEffect(() => {
+    void api.prepareLogin();
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -199,8 +175,8 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         return;
       }
 
-      const token = await api.login(username, password);
-      onAuthenticated(token);
+      const session = await api.login(username, password);
+      onAuthenticated(session.token, session.profile);
     } catch (requestError) {
       toast.error(
         "Authentication failed",
@@ -218,16 +194,17 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
       <nav className="public-nav" aria-label="Public navigation">
         <a className="public-logo" href="#top">
           <span className="public-logo-mark">
-            <Image src="/uniproxies-logo.png" alt="" width={828} height={828} />
+            <Image src="/uniproxy-logo.png" alt="" width={500} height={500} />
           </span>
-          <strong>UNIPROXIES</strong>
+          <strong>UniProxy</strong>
         </a>
         <div className="public-links">
           <a href="#proxies">Proxies</a>
-          <a href="#pricing">Pricing</a>
           <a href="#use-cases">Use Cases</a>
           <a href="#resources">Resources</a>
-          <a href="#support">Contact</a>
+          <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
+            Contact
+          </a>
         </div>
         <div className="public-actions">
           <a href="#auth-form">Sign up</a>
@@ -238,7 +215,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
       <div className="landing-container" id="top">
         <section className="auth-hero">
           <div className="flying-unicorn" aria-hidden="true">
-            <Image src="/uniproxies-logo.png" alt="" width={828} height={828} />
+            <Image src="/uniproxy-logo.png" alt="" width={500} height={500} />
           </div>
 
           <div className="hero-copy">
@@ -249,17 +226,17 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               <small>4.8 · 2,400 reviews</small>
             </div>
 
-            <h1>Residential Proxies That Do Not Get Blocked</h1>
+            <h1>Datacenter and IPv6 Proxies Built for Speed</h1>
             <p>
-              Access clean residential IPs across worldwide locations. Rotating
-              proxies, sticky sessions, backconnect support, and a simple
-              dashboard for purchasing and managing credentials.
+              Access fast datacenter and IPv6 proxy plans from one clean
+              dashboard. Purchase plans, manage credentials, and start routing
+              traffic without a complicated setup.
             </p>
 
             <ul className="feature-list">
               {[
-                "20M+ Residential IPs · 195 Countries",
-                "Rotating and Sticky Sessions · Backconnect",
+                "Datacenter and IPv6 plans",
+                "Fast delivery and simple credentials",
                 "HTTP and SOCKS5 Support",
               ].map((item) => (
                 <li key={item}>
@@ -274,8 +251,8 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                 Start Free Trial
                 <ArrowRight aria-hidden="true" size={16} />
               </a>
-              <a className="hero-secondary" href="#pricing">
-                View Pricing
+              <a className="hero-secondary" href="#proxies">
+                View Plans
               </a>
             </div>
             <p className="hero-note">Free trial · No credit card required</p>
@@ -290,9 +267,9 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               </div>
               <div className="hero-terminal">
                 <div />
-                <code>gateway.uniproxies.local:9000</code>
-                <code>session=sticky · country=US</code>
-                <code>HTTP · SOCKS5 · Backconnect</code>
+                <code>gateway.uniproxy.local:9000</code>
+                <code>plan=datacenter · country=US</code>
+                <code>HTTP · SOCKS5 · IPv6-ready</code>
               </div>
               <div className="hero-node hero-node-bottom">
                 <span />
@@ -305,10 +282,10 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               <div className="auth-brand">
                 <div className="brand-mark">
                   <Image
-                    src="/uniproxies-logo.png"
+                    src="/uniproxy-logo.png"
                     alt=""
-                    width={828}
-                    height={828}
+                    width={500}
+                    height={500}
                   />
                 </div>
                 <div>
@@ -409,7 +386,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         <section className="stat-strip" aria-label="Network statistics">
           <div>
             <strong>20M+</strong>
-            <span>Residential IPs</span>
+            <span>Available proxy plans</span>
           </div>
           <div>
             <strong>195</strong>
@@ -426,20 +403,19 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         </section>
 
         <section className="marketing-section intro-section">
-          <p className="eyebrow">Residential Proxies</p>
+          <p className="eyebrow">Proxy Network</p>
           <div className="two-column-copy">
-            <h2>What Are Residential Proxies?</h2>
+            <h2>What Are Datacenter and IPv6 Proxies?</h2>
             <div>
               <h3>Definition</h3>
               <p>
-                Residential proxies route requests through IPs assigned to real
-                homes, making traffic look more natural than server-hosted IPs.
+                Datacenter proxies route traffic through fast server-hosted IPs,
+                while IPv6 proxies provide scalable modern address pools.
               </p>
               <h3>How They Work</h3>
               <p>
-                A backconnect gateway rotates IPs automatically, while sticky
-                sessions keep the same IP when multi-step workflows need
-                continuity.
+                UniProxy provides plan access and credentials from the dashboard
+                so your tools can connect through HTTP or SOCKS5.
               </p>
             </div>
           </div>
@@ -448,10 +424,10 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         <section className="marketing-section" id="proxies">
           <p className="eyebrow">Proxy Solutions</p>
           <div className="section-title-row">
-            <h2>Every proxy type, one platform</h2>
+            <h2>Available proxy types, one platform</h2>
             <p>
-              Choose residential, unlimited, datacenter, or mobile proxies for
-              scraping, automation, research, and account workflows.
+              Choose datacenter or IPv6 proxies for automation, research, and
+              account workflows.
             </p>
           </div>
           <div className="proxy-card-grid">
@@ -486,10 +462,10 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         <section className="feature-band" id="use-cases">
           <div>
             <p className="eyebrow">Built for Professional Use</p>
-            <h2>Enterprise-Grade Residential Proxy Network</h2>
+            <h2>Enterprise-Grade Proxy Network</h2>
             <p>
-              Built for rotating and sticky sessions, large-scale scraping
-              operations, and professional data access at any volume.
+              Built for automation, scalable workloads, and professional data
+              access through Datacenter and IPv6 plans.
             </p>
           </div>
           <div className="feature-list-grid">
@@ -507,18 +483,18 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
           <div className="section-title-row">
             <h2>Every Industry. One Network.</h2>
             <p>
-              Residential proxy infrastructure for automation, anonymity, and
-              reliable data access across high-sensitivity workflows.
+              Proxy infrastructure for automation, privacy, and reliable data
+              access across demanding workflows.
             </p>
           </div>
           <div className="industry-layout">
             <div className="industry-art" aria-hidden="true">
               <div className="industry-orbit">
                 <Image
-                  src="/uniproxies-logo.png"
+                  src="/uniproxy-logo.png"
                   alt=""
-                  width={828}
-                  height={828}
+                  width={500}
+                  height={500}
                 />
               </div>
               <span>global routing</span>
@@ -563,54 +539,21 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
           </div>
         </section>
 
-        <section className="pricing-panel" id="pricing">
-          <div>
-            <p className="eyebrow">Unlimited Plan</p>
-            <h2>Unlimited Rotating Residential Proxies</h2>
-            <p>
-              For operations that need continuous access without tracking
-              bandwidth consumption, unlimited rotating residential proxies keep
-              pricing predictable.
-            </p>
-            <a className="hero-link" href="#auth-form">
-              Get Unlimited Access
-              <ArrowRight aria-hidden="true" size={16} />
-            </a>
-          </div>
-          <div className="price-card">
-            <span>Starting from</span>
-            <strong>$70/day</strong>
-            <p>No per-GB billing. Unlimited traffic.</p>
-            <div>
-              <span>1 Day</span>
-              <strong>$250/day</strong>
-            </div>
-            <div>
-              <span>7 Days</span>
-              <strong>$100/day</strong>
-            </div>
-            <div>
-              <span>30 Days</span>
-              <strong>$70/day</strong>
-            </div>
-          </div>
-        </section>
-
         <section className="marketing-section comparison-section" id="resources">
           <p className="eyebrow">Proxy Comparison</p>
-          <h2>Residential Proxies vs Datacenter Proxies</h2>
+          <h2>Datacenter Proxies vs IPv6 Proxies</h2>
           <div className="comparison-table">
             {[
-              ["IP Source", "Real residential devices", "Server-hosted IPs"],
-              ["Detection Risk", "Low", "Higher"],
-              ["Speed", "Moderate", "Fast"],
-              ["Best For", "Scraping and account management", "Speed-sensitive tasks"],
-              ["Targeting", "Country, state, city, ISP", "Country level"],
-            ].map(([label, residential, datacenter]) => (
+              ["IP Source", "Server-hosted IPv4 pools", "Native IPv6 pools"],
+              ["Speed", "Fast", "Fast"],
+              ["Best For", "Automation and scraping", "IPv6-ready workflows"],
+              ["Scale", "Dedicated package sizes", "Large address diversity"],
+              ["Protocols", "HTTP and SOCKS5", "HTTP and SOCKS5"],
+            ].map(([label, datacenter, ipv6]) => (
               <div key={label}>
                 <strong>{label}</strong>
-                <span>{residential}</span>
                 <span>{datacenter}</span>
+                <span>{ipv6}</span>
               </div>
             ))}
           </div>
@@ -638,7 +581,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             <Building2 aria-hidden="true" size={28} />
             <h2>Start With a Free Trial</h2>
             <p>
-              Test the residential proxy network before committing to a plan.
+              Test the proxy network before committing to a plan.
               No credit card required.
             </p>
             <span>Free trial · No credit card</span>
@@ -648,8 +591,13 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               Get Started Free
               <ArrowRight aria-hidden="true" size={16} />
             </a>
-            <a className="hero-secondary" href="mailto:support@uniproxies.com">
-              Talk to Sales
+            <a
+              className="hero-secondary"
+              href={telegramUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Contact via Telegram
             </a>
           </div>
         </section>
@@ -659,8 +607,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             <p className="eyebrow">FAQ</p>
             <h2>Frequently Asked Questions</h2>
             <p>
-              Can&apos;t find an answer? Contact the UNIPROXIES team for
-              setup help.
+              Common setup answers for UniProxy customers.
             </p>
           </div>
           <div className="faq-list">
@@ -678,28 +625,27 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             <div>
               <span className="public-logo-mark">
                 <Image
-                  src="/uniproxies-logo.png"
+                  src="/uniproxy-logo.png"
                   alt=""
-                  width={828}
-                  height={828}
+                  width={500}
+                  height={500}
                 />
               </span>
-              <strong>UNIPROXIES</strong>
+              <strong>UniProxy</strong>
             </div>
-            <p>Residential, datacenter, mobile, IPv6, and ISP proxies from one clean dashboard.</p>
+            <p>Datacenter and IPv6 proxies from one clean dashboard.</p>
           </div>
           <div className="footer-columns">
             <div>
               <h3>Contact</h3>
-              <a href="mailto:support@uniproxies.com">support@uniproxies.com</a>
-              <span>Live chat support</span>
+              <a href={telegramUrl} target="_blank" rel="noreferrer">
+                Telegram Support
+              </a>
             </div>
             <div>
               <h3>Proxies</h3>
-              <a href="#proxies">Residential Proxies</a>
-              <a href="#proxies">Unlimited Residential</a>
               <a href="#proxies">Datacenter Proxies</a>
-              <a href="#proxies">Mobile Proxies</a>
+              <a href="#proxies">IPv6 Proxies</a>
             </div>
             <div>
               <h3>Solutions</h3>
@@ -717,7 +663,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             </div>
           </div>
           <div className="footer-bottom">
-            <span>© 2026 UNIPROXIES. All rights reserved.</span>
+            <span>© 2026 UniProxy. All rights reserved.</span>
             <div className="payment-logo-row" aria-label="Accepted crypto payments">
               {cryptoPayments.map(([fileName, label]) => (
                 <span key={fileName} title={label}>

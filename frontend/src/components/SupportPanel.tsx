@@ -11,7 +11,7 @@ type SupportPanelProps = {
 };
 
 const telegramUrl =
-  process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/uniproxies";
+  process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxy";
 
 export function SupportPanel({ token }: SupportPanelProps) {
   const [faqs, setFaqs] = useState<SupportFaq[]>([]);

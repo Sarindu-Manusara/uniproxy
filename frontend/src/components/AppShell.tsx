@@ -57,9 +57,9 @@ export function AppShell({
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="brand-mark">
-            <Image src="/uniproxies-logo.png" alt="" width={828} height={828} />
+            <Image src="/uniproxy-logo.png" alt="" width={500} height={500} />
           </div>
-          <strong>UNIPROXIES</strong>
+          <strong>UniProxy</strong>
         </div>
 
         <p className="sidebar-menu-title">Main menu</p>
@@ -152,7 +152,7 @@ export function AppShell({
 
           <a
             className="nav-external"
-            href="https://telegram.org"
+            href={process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxy"}
             target="_blank"
             rel="noreferrer"
           >

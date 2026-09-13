@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AdminPanel } from "@/components/AdminPanel";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { AuthPanel } from "@/components/AuthPanel";
 import { DashboardPanel } from "@/components/DashboardPanel";
-import { PaymentsPanel } from "@/components/PaymentsPanel";
-import { ProxiesPanel } from "@/components/ProxiesPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
-import { SupportPanel } from "@/components/SupportPanel";
-import { TransactionsPanel } from "@/components/TransactionsPanel";
 import { ToastProvider } from "@/components/ToastProvider";
 import { api } from "@/lib/api";
 import type { Profile, ViewId } from "@/lib/types";
@@ -17,6 +12,13 @@ import type { Profile, ViewId } from "@/lib/types";
 const tokenStorageKey = "uniproxy.authToken";
 const frontendCurrentUserBalance = 50;
 const frontendBalanceUsername = "demo";
+
+const AdminPanel = dynamic(() => import("@/components/AdminPanel").then((module) => module.AdminPanel));
+const PaymentsPanel = dynamic(() => import("@/components/PaymentsPanel").then((module) => module.PaymentsPanel));
+const ProxiesPanel = dynamic(() => import("@/components/ProxiesPanel").then((module) => module.ProxiesPanel));
+const SettingsPanel = dynamic(() => import("@/components/SettingsPanel").then((module) => module.SettingsPanel));
+const SupportPanel = dynamic(() => import("@/components/SupportPanel").then((module) => module.SupportPanel));
+const TransactionsPanel = dynamic(() => import("@/components/TransactionsPanel").then((module) => module.TransactionsPanel));
 
 const withFrontendCurrentUserBalance = (profile: Profile): Profile => {
   if (profile.username.trim().toLowerCase() !== frontendBalanceUsername) {
@@ -35,10 +37,13 @@ export default function Home() {
   const [activeView, setActiveView] = useState<ViewId>("dashboard");
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const currentToken = useRef<string | null>(null);
+  const profileLoadedToken = useRef<string | null>(null);
 
   useEffect(() => {
     const storedToken = window.localStorage.getItem(tokenStorageKey);
     if (storedToken) {
+      currentToken.current = storedToken;
       setToken(storedToken);
     }
   }, []);
@@ -53,29 +58,46 @@ export default function Home() {
 
     try {
       const nextProfile = await api.profile(token);
-      setProfile(withFrontendCurrentUserBalance(nextProfile));
+      if (currentToken.current === token) {
+        setProfile(withFrontendCurrentUserBalance(nextProfile));
+      }
     } catch (error) {
-      setProfile(null);
-      setProfileError(error instanceof Error ? error.message : "Unable to load profile");
+      if (currentToken.current === token) {
+        setProfile(null);
+        setProfileError(error instanceof Error ? error.message : "Unable to load profile");
+      }
     } finally {
-      setLoadingProfile(false);
+      if (currentToken.current === token) {
+        setLoadingProfile(false);
+      }
     }
   }, [token]);
 
   useEffect(() => {
-    refreshProfile();
-  }, [refreshProfile]);
+    if (token && profileLoadedToken.current !== token) {
+      void refreshProfile();
+    }
+  }, [token, refreshProfile]);
 
-  const handleAuth = (nextToken: string) => {
+  const handleAuth = (nextToken: string, nextProfile: Profile | null) => {
     window.localStorage.setItem(tokenStorageKey, nextToken);
+    currentToken.current = nextToken;
+    profileLoadedToken.current = nextProfile ? nextToken : null;
+    setProfile(nextProfile ? withFrontendCurrentUserBalance(nextProfile) : null);
+    setProfileError("");
+    setLoadingProfile(false);
     setToken(nextToken);
     setActiveView("dashboard");
   };
 
   const handleLogout = () => {
     window.localStorage.removeItem(tokenStorageKey);
+    currentToken.current = null;
+    profileLoadedToken.current = null;
     setToken(null);
     setProfile(null);
+    setLoadingProfile(false);
+    setProfileError("");
     setActiveView("dashboard");
   };
 

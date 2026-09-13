@@ -5,6 +5,11 @@ export type Profile = {
   role: "USER" | "ADMIN" | string;
 };
 
+export type LoginSession = {
+  token: string;
+  profile: Profile | null;
+};
+
 export type Transaction = {
   paymentId: string;
   amount: number | string;
