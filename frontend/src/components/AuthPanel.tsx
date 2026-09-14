@@ -248,7 +248,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
             <div className="hero-actions">
               <a className="hero-link" href="#auth-form">
-                Start Free Trial
+                Get Started
                 <ArrowRight aria-hidden="true" size={16} />
               </a>
               <a className="hero-secondary" href="#proxies">
