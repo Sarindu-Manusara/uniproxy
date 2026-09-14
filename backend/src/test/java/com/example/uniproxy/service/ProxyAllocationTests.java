@@ -48,6 +48,33 @@ class ProxyAllocationTests {
     }
 
     @Test
+    void cryptoFulfillmentCreatesTheOrderWithoutUsingAccountBalance() {
+        Map<String, Object> response = service.purchaseProxyWithCrypto(
+                user,
+                request(Map.of("US", 60, "DE", 40)),
+                new BigDecimal("10.00")
+        );
+
+        verify(provider).createOrder(any());
+        verify(users, never()).save(any());
+        assertEquals(new BigDecimal("10.00"), response.get("chargedAmount"));
+        assertEquals(new BigDecimal("100.00"), user.getBalance());
+    }
+
+    @Test
+    void cryptoFulfillmentHonorsTheInvoicedAmountWhenTheLivePriceChanges() {
+        Map<String, Object> response = service.purchaseProxyWithCrypto(
+                user,
+                request(Map.of("US", 60, "DE", 40)),
+                new BigDecimal("18.50")
+        );
+
+        verify(provider).createOrder(any());
+        assertEquals(new BigDecimal("18.50"), response.get("chargedAmount"));
+        assertEquals(new BigDecimal("100.00"), user.getBalance());
+    }
+
+    @Test
     void rejectsBadTotalsCountsAndUnsupportedCountriesWithoutPurchasing() {
         for (Map<String, ?> allocation : List.of(Map.of("US", 60, "DE", 39), Map.of("US", 60.5, "DE", 39.5), Map.of("US", -1, "DE", 101), Map.of("XX", 100))) {
             assertThrows(IllegalArgumentException.class, () -> service.purchaseProxy(user, request(allocation)));

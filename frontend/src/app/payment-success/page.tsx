@@ -11,10 +11,10 @@ export default function PaymentSuccessPage() {
         </div>
         <CheckCircle2 aria-hidden="true" size={42} />
         <p className="eyebrow">Payment successful</p>
-        <h1>Your deposit is being processed.</h1>
+        <h1>Your payment is being processed.</h1>
         <p>
-          Thank you. Your payment was completed successfully. Your balance will
-          update after the crypto network confirmation and webhook processing.
+          Your account will update after the crypto network confirmation. Plan
+          purchases will appear in Active Plans when activation is complete.
         </p>
         <Link className="hero-link" href="/">
           <LayoutDashboard aria-hidden="true" size={17} />

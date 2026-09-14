@@ -265,11 +265,6 @@ export function ProxiesPanel({
       return;
     }
 
-    if (paymentMethod !== "Balance") {
-      toast.error("Checkout blocked", "Deposit balance first, then purchase plans from your account balance.");
-      return;
-    }
-
     const providerPackageId = checkoutPlan.providerPackageId;
     if (!providerPackageId) {
       toast.error(
@@ -300,11 +295,16 @@ export function ProxiesPanel({
         body.whitelistedIps = false;
       }
 
-      const response = await api.purchaseProxy(token, body);
-      toast.success("Plan purchased", response.message);
-      setCheckoutPlan(null);
-      await refresh();
-      onChanged();
+      if (paymentMethod === "Crypto") {
+        const redirectUrl = await api.createProxyPayment(token, body);
+        window.location.assign(redirectUrl);
+      } else {
+        const response = await api.purchaseProxy(token, body);
+        toast.success("Plan purchased", response.message);
+        setCheckoutPlan(null);
+        await refresh();
+        onChanged();
+      }
     } catch (requestError) {
       toast.error(
         "Checkout failed",
@@ -431,12 +431,17 @@ export function ProxiesPanel({
               onClick={submitCheckout}
             >
               <ShoppingCart aria-hidden="true" size={18} />
-              {loading ? "Processing..." : "Buy Now"}
+              {loading
+                ? "Processing..."
+                : paymentMethod === "Crypto"
+                  ? "Pay with Crypto"
+                  : "Buy Now"}
             </button>
 
             <p className="checkout-note">
-              This uses your UniProxy balance and saves returned credentials
-              into Active Plans.
+              {paymentMethod === "Crypto"
+                ? "Pay for this plan directly. It will appear in Active Plans after network confirmation."
+                : "This uses your UniProxy balance and saves returned credentials into Active Plans."}
             </p>
           </aside>
         </div>

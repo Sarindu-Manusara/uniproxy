@@ -30,7 +30,25 @@ public class PaymentController {
 
         try {
             return ResponseEntity.ok(paymentService.createPayment(user, amount));
-        } catch (IllegalStateException error) {
+        } catch (IllegalArgumentException | IllegalStateException error) {
+            return ResponseEntity.badRequest().body(error.getMessage());
+        }
+    }
+
+    @PostMapping("/proxy-purchase")
+    public ResponseEntity<String> createProxyPurchase(
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        try {
+            if (body == null || body.isEmpty()) {
+                return ResponseEntity.badRequest().body("Select a live CatProxies package before purchasing.");
+            }
+            return ResponseEntity.ok(paymentService.createProxyPurchasePayment(user, body));
+        } catch (IllegalArgumentException | IllegalStateException error) {
             return ResponseEntity.badRequest().body(error.getMessage());
         }
     }

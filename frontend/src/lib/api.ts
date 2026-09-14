@@ -163,6 +163,13 @@ export const api = {
       body,
     }),
 
+  createProxyPayment: (token: string, body: unknown) =>
+    request<string>("/api/payments/proxy-purchase", {
+      method: "POST",
+      token,
+      body,
+    }),
+
   providerAccount: (token: string) =>
     request<unknown>("/api/proxies/provider/account", { token }),
 

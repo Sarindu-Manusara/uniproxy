@@ -13,8 +13,8 @@ export default function PaymentCancelPage() {
         <p className="eyebrow">Payment cancelled</p>
         <h1>Your payment was not completed.</h1>
         <p>
-          No balance was added. You can return to the dashboard and create a new
-          crypto payment invoice when you are ready.
+          Nothing was charged. Return to the dashboard when you are ready to try
+          again.
         </p>
         <Link className="hero-link" href="/">
           <RotateCcw aria-hidden="true" size={17} />

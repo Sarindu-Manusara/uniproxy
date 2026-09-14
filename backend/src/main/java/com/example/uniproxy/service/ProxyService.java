@@ -34,6 +34,51 @@ public class ProxyService {
 
     @Transactional
     public Map<String, Object> purchaseProxy(User user, Map<String, Object> request) {
+        PurchaseContext purchase = preparePurchase(request);
+        BigDecimal currentBalance = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
+
+        if (currentBalance.compareTo(purchase.chargeAmount()) < 0) {
+            throw new IllegalStateException(
+                    "Insufficient balance. Required: $" + purchase.chargeAmount() + ", available: $" + currentBalance + "."
+            );
+        }
+
+        Map<String, Object> response = fulfillPurchase(user, purchase);
+        user.setBalance(currentBalance.subtract(purchase.chargeAmount()));
+        userRepository.save(user);
+        return response;
+    }
+
+    public BigDecimal quoteProxyPurchase(Map<String, Object> request) {
+        return preparePurchase(request).chargeAmount();
+    }
+
+    @Transactional
+    public Map<String, Object> purchaseProxyWithCrypto(
+            User user,
+            Map<String, Object> request,
+            BigDecimal paidAmount
+    ) {
+        PurchaseContext purchase = preparePurchase(request);
+        if (paidAmount == null || paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("The paid amount is invalid.");
+        }
+
+        PurchaseContext paidPurchase = new PurchaseContext(
+                purchase.packageId(),
+                purchase.proxyType(),
+                purchase.product(),
+                purchase.orderPayload(),
+                paidAmount.setScale(2, java.math.RoundingMode.HALF_UP)
+        );
+        return fulfillPurchase(user, paidPurchase);
+    }
+
+    private PurchaseContext preparePurchase(Map<String, Object> request) {
+        if (request == null || request.isEmpty()) {
+            throw new IllegalArgumentException("Select a live CatProxies package before purchasing.");
+        }
+
         String packageId = firstString(request, "packageId", "providerPackageId");
         if (packageId == null) {
             throw new IllegalArgumentException("Select a live CatProxies package before purchasing.");
@@ -55,16 +100,12 @@ public class ProxyService {
         }
 
         BigDecimal chargeAmount = resolveChargeAmount(product, request, proxyType);
-        BigDecimal currentBalance = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
-
-        if (currentBalance.compareTo(chargeAmount) < 0) {
-            throw new IllegalStateException(
-                    "Insufficient balance. Required: $" + chargeAmount + ", available: $" + currentBalance + "."
-            );
-        }
-
         Map<String, Object> orderPayload = buildOrderPayload(packageId, proxyType, product, request);
-        Object createOrderResponse = catProxiesApiService.createOrder(orderPayload);
+        return new PurchaseContext(packageId, proxyType, product, orderPayload, chargeAmount);
+    }
+
+    private Map<String, Object> fulfillPurchase(User user, PurchaseContext purchase) {
+        Object createOrderResponse = catProxiesApiService.createOrder(purchase.orderPayload());
         String orderId = extractOrderId(createOrderResponse);
         Object orderDetails = orderId == null
                 ? createOrderResponse
@@ -72,9 +113,9 @@ public class ProxyService {
 
         List<UserProxy> savedProxies = saveProviderProxies(
                 user,
-                packageId,
-                firstString(product, "title", "name", "packageName"),
-                proxyType,
+                purchase.packageId(),
+                firstString(purchase.product(), "title", "name", "packageName"),
+                purchase.proxyType(),
                 orderId,
                 orderDetails
         );
@@ -82,24 +123,30 @@ public class ProxyService {
         if (savedProxies.isEmpty()) {
             savedProxies.add(savePendingProxy(
                     user,
-                    packageId,
-                    firstString(product, "title", "name", "packageName"),
-                    proxyType,
+                    purchase.packageId(),
+                    firstString(purchase.product(), "title", "name", "packageName"),
+                    purchase.proxyType(),
                     orderId
             ));
         }
-
-        user.setBalance(currentBalance.subtract(chargeAmount));
-        userRepository.save(user);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "CatProxies order purchased successfully.");
         response.put("provider", "CatProxies");
         response.put("orderId", orderId);
-        response.put("chargedAmount", chargeAmount);
+        response.put("chargedAmount", purchase.chargeAmount());
         response.put("savedProxies", savedProxies.size());
-        response.put("orderPayload", orderPayload);
+        response.put("orderPayload", purchase.orderPayload());
         return response;
+    }
+
+    private record PurchaseContext(
+            String packageId,
+            String proxyType,
+            Map<String, Object> product,
+            Map<String, Object> orderPayload,
+            BigDecimal chargeAmount
+    ) {
     }
 
     private Map<String, Object> buildOrderPayload(

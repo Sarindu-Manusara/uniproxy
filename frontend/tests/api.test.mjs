@@ -39,6 +39,27 @@ test("incorrect credentials do not create a session", async () => {
   await assert.rejects(api.login("demo", "wrong-password"), (error) => error instanceof ApiError && error.status === 401);
 });
 
+test("crypto plan checkout sends the selected plan directly to payments", async () => {
+  const calls = [];
+  const purchase = {
+    packageId: "dc-250",
+    proxyType: "DatacenterP",
+    countryProxies: { US: 250 },
+  };
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return new Response("https://nowpayments.test/invoice-123");
+  };
+
+  const redirect = await api.createProxyPayment("signed-token", purchase);
+
+  assert.equal(redirect, "https://nowpayments.test/invoice-123");
+  assert.equal(new URL(calls[0].url).pathname, "/api/payments/proxy-purchase");
+  assert.equal(calls[0].options.method, "POST");
+  assert.equal(calls[0].options.headers.Authorization, "Bearer signed-token");
+  assert.deepEqual(JSON.parse(calls[0].options.body), purchase);
+});
+
 test("duplicate preparation calls share one background health request", async () => {
   let complete;
   let calls = 0;

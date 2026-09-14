@@ -14,10 +14,19 @@ public class Transaction {
     private Long id;
 
     private String paymentId; // The ID from NOWPayments
+    private String orderId;
     private BigDecimal amount;
     private String currency;
     private String status; // PENDING, FINISHED, FAILED
+    private String paymentPurpose;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String purchasePayload;
+
+    private String providerOrderId;
     private LocalDateTime createdAt;
+    private LocalDateTime finishedAt;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
