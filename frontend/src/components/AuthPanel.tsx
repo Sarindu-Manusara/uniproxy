@@ -691,13 +691,6 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               <a href="#use-cases">SEO Monitoring</a>
               <a href="#use-cases">Ad Tech</a>
             </div>
-            <div>
-              <h3>Legal</h3>
-              <a href="#support">Terms and Conditions</a>
-              <a href="#support">Privacy Policy</a>
-              <a href="#support">Refund Policy</a>
-              <a href="#support">Fair Usage Policy</a>
-            </div>
           </div>
           <div className="footer-bottom">
             <span>© 2026 UniProxy. All rights reserved.</span>
