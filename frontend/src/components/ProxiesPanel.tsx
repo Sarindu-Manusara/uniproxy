@@ -673,7 +673,7 @@ export function ProxiesPanel({
           </div>
 
           <div className="table-wrap">
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>IP</th>
@@ -687,12 +687,12 @@ export function ProxiesPanel({
               <tbody>
                 {proxies.map((proxy) => (
                   <tr key={proxy.id}>
-                    <td>{proxy.ip}</td>
-                    <td>{proxy.port}</td>
-                    <td>{proxy.proxyUsername}</td>
-                    <td>{proxy.proxyPassword}</td>
-                    <td>{formatDate(proxy.expiryDate)}</td>
-                    <td>
+                    <td data-label="IP">{proxy.ip}</td>
+                    <td data-label="Port">{proxy.port}</td>
+                    <td data-label="Username">{proxy.proxyUsername}</td>
+                    <td data-label="Password">{proxy.proxyPassword}</td>
+                    <td data-label="Expiry">{formatDate(proxy.expiryDate)}</td>
+                    <td data-label="Copy">
                       <button
                         className="icon-button table-icon"
                         type="button"

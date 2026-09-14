@@ -148,7 +148,7 @@ export function AdminPanel({ token }: AdminPanelProps) {
       </div>
 
       <div className="table-wrap">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>ID</th>
@@ -161,11 +161,11 @@ export function AdminPanel({ token }: AdminPanelProps) {
           <tbody>
             {users.map((user) => (
               <tr key={user.id}>
-                <td>{user.id}</td>
-                <td>{user.username}</td>
-                <td>{user.email}</td>
-                <td>{user.role}</td>
-                <td>{formatCurrency(user.balance)}</td>
+                <td data-label="ID">{user.id}</td>
+                <td data-label="Username">{user.username}</td>
+                <td data-label="Email">{user.email}</td>
+                <td data-label="Role">{user.role}</td>
+                <td data-label="Balance">{formatCurrency(user.balance)}</td>
               </tr>
             ))}
             {!loading && users.length === 0 ? (
@@ -274,7 +274,7 @@ export function AdminPanel({ token }: AdminPanelProps) {
         </form>
 
         <div className="table-wrap">
-          <table>
+          <table className="responsive-table">
             <thead>
               <tr>
                 <th>Order</th>
@@ -287,11 +287,11 @@ export function AdminPanel({ token }: AdminPanelProps) {
             <tbody>
               {faqs.map((faq) => (
                 <tr key={faq.id}>
-                  <td>{faq.sortOrder}</td>
-                  <td>{faq.question}</td>
-                  <td>{faq.answer}</td>
-                  <td>{faq.active ? "Visible" : "Hidden"}</td>
-                  <td>
+                  <td data-label="Order">{faq.sortOrder}</td>
+                  <td data-label="Question">{faq.question}</td>
+                  <td data-label="Answer">{faq.answer}</td>
+                  <td data-label="Status">{faq.active ? "Visible" : "Hidden"}</td>
+                  <td data-label="Actions">
                     <div className="table-action-row">
                       <button
                         className="icon-button table-icon"

@@ -50,7 +50,7 @@ export function TransactionsPanel({ token }: TransactionsPanelProps) {
       </div>
 
       <div className="table-wrap">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>Payment ID</th>
@@ -62,14 +62,14 @@ export function TransactionsPanel({ token }: TransactionsPanelProps) {
           <tbody>
             {transactions.map((transaction) => (
               <tr key={`${transaction.paymentId}-${transaction.createdAt}`}>
-                <td className="break-text">{transaction.paymentId}</td>
-                <td>{formatCurrency(transaction.amount)}</td>
-                <td>
+                <td className="break-text" data-label="Payment ID">{transaction.paymentId}</td>
+                <td data-label="Amount">{formatCurrency(transaction.amount)}</td>
+                <td data-label="Status">
                   <span className={`status-badge ${transaction.status.toLowerCase()}`}>
                     {transaction.status}
                   </span>
                 </td>
-                <td>{formatDate(transaction.createdAt)}</td>
+                <td data-label="Created">{formatDate(transaction.createdAt)}</td>
               </tr>
             ))}
             {!loading && transactions.length === 0 ? (

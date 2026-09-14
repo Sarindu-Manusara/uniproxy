@@ -9,12 +9,14 @@ import {
   Check,
   Database,
   Megaphone,
+  Menu,
   Network,
   LogIn,
   Search,
   ShieldCheck,
   Store,
   UserPlus,
+  X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Profile } from "@/lib/types";
@@ -157,11 +159,22 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [publicMenuOpen, setPublicMenuOpen] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     void api.prepareLogin();
   }, []);
+
+  useEffect(() => {
+    if (!publicMenuOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPublicMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [publicMenuOpen]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -198,17 +211,41 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
           </span>
           <strong>UniProxy</strong>
         </a>
-        <div className="public-links">
-          <a href="#proxies">Proxies</a>
-          <a href="#use-cases">Use Cases</a>
-          <a href="#resources">Resources</a>
-          <a href={telegramUrl} target="_blank" rel="noopener noreferrer">
-            Contact
-          </a>
-        </div>
-        <div className="public-actions">
-          <a href="#auth-form">Sign up</a>
-          <a href="#auth-form">Login</a>
+        <button
+          className="icon-button public-menu-button"
+          type="button"
+          aria-controls="public-navigation-menu"
+          aria-expanded={publicMenuOpen}
+          aria-label={publicMenuOpen ? "Close navigation" : "Open navigation"}
+          onClick={() => setPublicMenuOpen((current) => !current)}
+        >
+          {publicMenuOpen ? (
+            <X aria-hidden="true" size={20} />
+          ) : (
+            <Menu aria-hidden="true" size={20} />
+          )}
+        </button>
+        <div
+          className={`public-menu ${publicMenuOpen ? "open" : ""}`}
+          id="public-navigation-menu"
+        >
+          <div className="public-links">
+            <a href="#proxies" onClick={() => setPublicMenuOpen(false)}>Proxies</a>
+            <a href="#use-cases" onClick={() => setPublicMenuOpen(false)}>Use Cases</a>
+            <a href="#resources" onClick={() => setPublicMenuOpen(false)}>Resources</a>
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setPublicMenuOpen(false)}
+            >
+              Contact
+            </a>
+          </div>
+          <div className="public-actions">
+            <a href="#auth-form" onClick={() => setPublicMenuOpen(false)}>Sign up</a>
+            <a href="#auth-form" onClick={() => setPublicMenuOpen(false)}>Login</a>
+          </div>
         </div>
       </nav>
 
