@@ -17,7 +17,7 @@ The backend provides:
 - Auth APIs for register and login.
 - User profile, password update, and transaction history.
 - Proxy purchase and proxy list APIs.
-- NOWPayments deposit APIs and webhook handling.
+- NOWPayments deposits, direct crypto plan purchases, and signed webhook handling.
 - Admin revenue and user listing APIs.
 
 ### Backend Local Setup
@@ -179,3 +179,31 @@ npm run test:api
 npm run lint
 npm run build
 ```
+
+## Direct Crypto Checkout
+
+Selecting Crypto at plan checkout calls `POST /api/payments/proxy-purchase` with
+the selected live package and its configuration. The backend quotes the price
+from CatProxies and creates a NOWPayments invoice for that purchase. No UniProxy
+balance deposit is needed and the buyer's balance is not changed.
+
+The signed callback at `/api/payments/webhook` activates the plan only after a
+`finished` status and full payment of the invoice. Completion is matched using
+the invoice's unique `order_id`; duplicate and simultaneous callbacks are locked
+against the same transaction. Ordinary deposits still use `/api/payments/create`
+and credit account balance instead. Raw provider management endpoints require
+an admin login; customer access is limited to the catalog and country availability.
+
+Deploy both backend and frontend. The existing `NOWPAYMENTS_API_KEY`,
+`NOWPAYMENTS_INVOICE_URL`, `NOWPAYMENTS_IPN_SECRET`, `APP_BASE_URL`,
+`FRONTEND_BASE_URL`, and CatProxies reseller settings are used; no additional API
+key is required. `APP_BASE_URL` must point to the publicly reachable backend.
+CatProxies must have sufficient reseller credit and stock to activate the order.
+
+The transaction table gains nullable checkout metadata columns. The default
+`SPRING_JPA_HIBERNATE_DDL_AUTO=update` adds these at backend startup. Deployments
+using `validate` or `none` must apply the corresponding schema additions first.
+
+Automated integration tests cover zero-balance checkout and concurrent signed
+callbacks using mocked providers. A real provider payment still needs sandbox
+or live verification after deployment.

@@ -191,6 +191,7 @@ public class PaymentService {
         }
 
         if (PURPOSE_PROXY_PURCHASE.equals(tx.getPaymentPurpose())) {
+            verifyPlanPaymentAmount(tx, payload);
             Map<String, Object> purchaseRequest = readPurchasePayload(tx.getPurchasePayload());
             tx.setStatus("PROCESSING");
             transactionRepository.saveAndFlush(tx);
@@ -289,6 +290,32 @@ public class PaymentService {
     private void markInvoiceCreationFailed(Transaction tx) {
         tx.setStatus("CREATE_FAILED");
         transactionRepository.save(tx);
+    }
+
+    private void verifyPlanPaymentAmount(Transaction tx, Map<String, Object> payload) {
+        String currency = getFirstString(payload, "price_currency");
+        BigDecimal invoiceAmount = requiredDecimal(payload, "price_amount");
+        BigDecimal requestedCrypto = requiredDecimal(payload, "pay_amount");
+        BigDecimal paidCrypto = requiredDecimal(payload, "actually_paid");
+
+        if (!"USD".equalsIgnoreCase(currency) || invoiceAmount.compareTo(tx.getAmount()) != 0) {
+            throw new IllegalArgumentException("Payment does not match the plan invoice.");
+        }
+        if (requestedCrypto.signum() <= 0 || paidCrypto.compareTo(requestedCrypto) < 0) {
+            throw new IllegalArgumentException("The plan invoice has not been paid in full.");
+        }
+    }
+
+    private BigDecimal requiredDecimal(Map<String, Object> payload, String key) {
+        String value = getFirstString(payload, key);
+        if (value == null) {
+            throw new IllegalArgumentException("Payment callback is missing " + key + ".");
+        }
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException error) {
+            throw new IllegalArgumentException("Payment callback contains an invalid " + key + ".", error);
+        }
     }
 
     private Map<String, Object> readPurchasePayload(String payload) {

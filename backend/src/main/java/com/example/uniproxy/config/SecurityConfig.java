@@ -48,6 +48,10 @@ public class SecurityConfig {
                         // Admin only endpoints
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
+                        .requestMatchers("/api/proxies/provider/store", "/api/proxies/provider/datacenterp-countries")
+                        .authenticated()
+                        .requestMatchers("/api/proxies/provider/**").hasAuthority("ADMIN")
+
                         // All other endpoints require a valid JWT
                         .anyRequest().authenticated()
                 )

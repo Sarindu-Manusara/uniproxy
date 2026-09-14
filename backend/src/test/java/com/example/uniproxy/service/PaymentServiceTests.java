@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -102,7 +103,11 @@ class PaymentServiceTests {
                 .thenReturn(Map.of("orderId", "cat-order-9"));
         Map<String, Object> payload = Map.of(
                 "order_id", "PROXY_order-1",
-                "payment_status", "finished"
+                "payment_status", "finished",
+                "price_amount", "18.50",
+                "price_currency", "usd",
+                "pay_amount", "0.0003",
+                "actually_paid", "0.0003"
         );
 
         service.processWebhook(payload, signature(payload));
@@ -130,6 +135,52 @@ class PaymentServiceTests {
 
         verify(proxies, never()).purchaseProxyWithCrypto(any(), any(), any());
         verify(users, never()).save(any());
+    }
+
+    @Test
+    void underpaidFinishedWebhookCannotActivateAPlan() {
+        User user = user("buyer", "0.00");
+        Transaction transaction = transaction(user, "PROXY_PURCHASE");
+        when(transactions.findByOrderId("PROXY_order-1")).thenReturn(Optional.of(transaction));
+        Map<String, Object> payload = Map.of(
+                "order_id", "PROXY_order-1",
+                "payment_status", "finished",
+                "price_amount", "18.50",
+                "price_currency", "usd",
+                "pay_amount", "0.0003",
+                "actually_paid", "0.0001"
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> service.processWebhook(payload, signature(payload)));
+        verify(proxies, never()).purchaseProxyWithCrypto(any(), any(), any());
+        verify(users, never()).save(any());
+        assertEquals("PENDING", transaction.getStatus());
+    }
+
+    @Test
+    void wrongInvoiceAmountCannotActivateAPlan() {
+        Transaction transaction = transaction(user("buyer", "0.00"), "PROXY_PURCHASE");
+        when(transactions.findByOrderId("PROXY_order-1")).thenReturn(Optional.of(transaction));
+        Map<String, Object> payload = Map.of(
+                "order_id", "PROXY_order-1",
+                "payment_status", "finished",
+                "price_amount", "1.00",
+                "price_currency", "usd",
+                "pay_amount", "0.0003",
+                "actually_paid", "0.0003"
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> service.processWebhook(payload, signature(payload)));
+        verify(proxies, never()).purchaseProxyWithCrypto(any(), any(), any());
+    }
+
+    @Test
+    void unsignedWebhookCannotFulfillAPlan() {
+        assertThrows(SecurityException.class, () -> service.processWebhook(
+                Map.of("order_id", "PROXY_order-1", "payment_status", "finished"),
+                null
+        ));
+        verify(proxies, never()).purchaseProxyWithCrypto(any(), any(), any());
     }
 
     @Test

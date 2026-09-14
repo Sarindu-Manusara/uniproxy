@@ -20,7 +20,6 @@ public class Transaction {
     private String status; // PENDING, FINISHED, FAILED
     private String paymentPurpose;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String purchasePayload;
 
