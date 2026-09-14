@@ -281,9 +281,9 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
             <h1>Datacenter and IPv6 Proxies Built for Speed</h1>
             <p>
-              Access fast datacenter and IPv6 proxy plans from one clean
-              dashboard. Purchase plans, manage credentials, and start routing
-              traffic without a complicated setup.
+              Access 20M+ IPs across 195 countries.
+              Rotating proxies with backconnect support,
+              built for uninterrupted usage and automation.
             </p>
 
             <ul className="feature-list">
@@ -304,11 +304,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                 Get Started
                 <ArrowRight aria-hidden="true" size={16} />
               </a>
-              <a className="hero-secondary" href="#proxies">
-                View Plans
-              </a>
             </div>
-            <p className="hero-note">Free trial · No credit card required</p>
           </div>
 
           <div className="hero-stack">
@@ -432,7 +428,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
               <div className="security-note">
                 <ShieldCheck aria-hidden="true" size={17} />
-                <span>No credit card required · Cancel anytime</span>
+                <span>No logs collected. 100% Anonymous.</span>
               </div>
             </section>
           </div>
@@ -634,16 +630,11 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
         <section className="cta-band" id="support">
           <div>
             <Building2 aria-hidden="true" size={28} />
-            <h2>Start With a Free Trial</h2>
-            <p>
-              Test the proxy network before committing to a plan.
-              No credit card required.
-            </p>
-            <span>Free trial · No credit card</span>
+            <h2>Get Started Now</h2>
           </div>
           <div className="cta-actions">
             <a className="hero-link" href="#auth-form">
-              Get Started Free
+              Get Started
               <ArrowRight aria-hidden="true" size={16} />
             </a>
             <a
@@ -688,7 +679,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
               </span>
               <strong>UniProxy</strong>
             </div>
-            <p>Datacenter and IPv6 proxies from one clean dashboard.</p>
+            <p>Secure, high-speed proxies for privacy and performance</p>
           </div>
           <div className="footer-columns">
             <div>
