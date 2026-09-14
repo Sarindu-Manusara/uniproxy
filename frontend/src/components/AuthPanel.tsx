@@ -243,8 +243,24 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             </a>
           </div>
           <div className="public-actions">
-            <a href="#auth-form" onClick={() => setPublicMenuOpen(false)}>Sign up</a>
-            <a href="#auth-form" onClick={() => setPublicMenuOpen(false)}>Login</a>
+            <a
+              href="#auth-form"
+              onClick={() => {
+                setMode("register");
+                setPublicMenuOpen(false);
+              }}
+            >
+              Sign up
+            </a>
+            <a
+              href="#auth-form"
+              onClick={() => {
+                setMode("login");
+                setPublicMenuOpen(false);
+              }}
+            >
+              Login
+            </a>
           </div>
         </div>
       </nav>
@@ -327,7 +343,9 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
                 </div>
                 <div>
                   <p className="eyebrow">Client Portal</p>
-                  <h1>Start your session</h1>
+                  <h1>
+                    {mode === "login" ? "Sign in to UniProxy" : "Create your account"}
+                  </h1>
                 </div>
               </div>
 
