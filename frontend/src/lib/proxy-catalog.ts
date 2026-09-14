@@ -27,6 +27,7 @@ export type PlanFilters = {
 
 export type CountryStock = { code: string; name: string; available: number };
 export type CountryAllocation = Record<string, number>;
+export const MINIMUM_PLAN_PRICE = 10;
 export const emptyFilters: PlanFilters = {
   days: null,
   ipCount: null,
@@ -90,7 +91,7 @@ export function parseProviderPlan(value: unknown): ProxyPlan | null {
   const categoryText = (proxyType || name).toLowerCase();
   const category = categoryText.includes("datacenter") ? "datacenter" : categoryText.includes("ipv6") ? "ipv6" : null;
   const price = firstNumber(record, ["resellerPrice", "price", "amount", "total"]);
-  if (!packageId || !name || !category || record.hidden === true || price === null || price <= 0) return null;
+  if (!packageId || !name || !category || record.hidden === true || price === null || price < MINIMUM_PLAN_PRICE) return null;
 
   // Older store responses omitted metadata; only infer explicit units from the title.
   const durationText = text(record.period) || text(record.duration) || name;

@@ -131,6 +131,7 @@ Create a Render Blueprint from this repo, then fill the required environment var
 | Key | Example |
 | --- | --- |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://uniproxy-backend.onrender.com` |
+| `NEXT_PUBLIC_TELEGRAM_URL` | `https://t.me/UniProxyCC` |
 
 ## Manual Render Setup
 

@@ -21,6 +21,8 @@ import java.util.Objects;
 @Service
 public class ProxyService {
 
+    private static final BigDecimal MINIMUM_RESALE_PRICE = new BigDecimal("10.00");
+
     @Autowired
     private UserProxyRepository userProxyRepository;
 
@@ -317,6 +319,9 @@ public class ProxyService {
 
         if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("CatProxies product price is missing.");
+        }
+        if (unitPrice.compareTo(MINIMUM_RESALE_PRICE) < 0) {
+            throw new IllegalArgumentException("Plans priced below $10.00 are not available.");
         }
 
         BigDecimal price = unitPrice;

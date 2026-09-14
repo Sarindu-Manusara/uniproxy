@@ -152,7 +152,7 @@ export function AppShell({
 
           <a
             className="nav-external"
-            href={process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxy"}
+            href={process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxyCC"}
             target="_blank"
             rel="noreferrer"
           >

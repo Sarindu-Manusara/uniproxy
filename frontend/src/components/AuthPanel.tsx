@@ -29,14 +29,14 @@ type AuthMode = "login" | "register";
 const proxyProducts = [
   {
     icon: Database,
-    tag: "From $4.5/day",
+    tag: "Plans from $10",
     title: "Datacenter Proxies",
     copy: "High-speed server-hosted proxies for performance-heavy automation and scraping.",
     items: ["Fast response", "High volume", "Dedicated options"],
   },
   {
     icon: Network,
-    tag: "From $8/day",
+    tag: "Plans from $10",
     title: "IPv6 Proxies",
     copy: "Scalable IPv6 infrastructure for modern apps that need efficient IP diversity.",
     items: ["Large IPv6 pool", "Native IPv6 support", "High-volume deployment"],
@@ -122,20 +122,20 @@ const industryCards = [
 
 const faqs = [
   [
-    "What proxy protocols are supported?",
-    "UniProxy supports HTTP, HTTPS, and SOCKS5 credentials from one client dashboard.",
-  ],
-  [
     "Can I keep the same IP for a session?",
     "Yes. Sticky sessions can preserve the same IP for multi-step workflows, while rotation is available when you need fresh IPs.",
   ],
   [
-    "Do I need a credit card for the trial?",
-    "No. You can create an account and test the dashboard before committing to a paid plan.",
+    "Do you accept Monero (XMR)?",
+    "Yes we currently accept Monero, Zcash and other crypto.",
   ],
   [
-    "Which targets can I select?",
-    "Country targeting is available in the dashboard, with room to expand into city and state controls.",
+    "What is a proxy server?",
+    "A proxy server is an intermediary that routes your internet traffic through a different IP address, hiding your real one so you can access sites without geographic or rate-limit restrictions.",
+  ],
+  [
+    "Can I select specific countries?",
+    "Country targeting is available in the dashboard, with room to expand into cities and states.",
   ],
 ];
 
@@ -149,7 +149,7 @@ const cryptoPayments = [
 ];
 
 const telegramUrl =
-  process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxy";
+  process.env.NEXT_PUBLIC_TELEGRAM_URL?.trim() || "https://t.me/UniProxyCC";
 
 export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>("login");

@@ -6,7 +6,7 @@ import ts from "typescript";
 const source = await readFile(new URL("../src/lib/proxy-catalog.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
 const catalog = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
-const dc = (extra = {}) => catalog.parseProviderPlan({ packageId: "dc", title: "Datacenter package", proxyType: "DatacenterP", resellerPrice: "2.5", ips: 250, days: 7, bandwidth: "1000", ...extra });
+const dc = (extra = {}) => catalog.parseProviderPlan({ packageId: "dc", title: "Datacenter package", proxyType: "DatacenterP", resellerPrice: "12.5", ips: 250, days: 7, bandwidth: "1000", ...extra });
 const stock = [{ code: "US", name: "United States", available: 10 }, { code: "DE", name: "Germany", available: 100 }, { code: "CA", name: "Canada", available: 100 }];
 
 test("structured store metadata drives filters, duration and exact price", () => {
@@ -15,7 +15,7 @@ test("structured store metadata drives filters, duration and exact price", () =>
   assert.equal(plan.term, "7 days");
   assert.equal(plan.ipCount, 250);
   assert.equal(plan.bandwidthGb, 1000);
-  assert.equal(plan.price, 2.5);
+  assert.equal(plan.price, 12.5);
   assert.equal(catalog.durationLabel(7), "Weekly");
   assert.equal(catalog.bandwidthLabel(1000), "1TB");
 });
@@ -50,8 +50,9 @@ test("IPv6 modes use only real metered or unlimited provider packages", () => {
   assert.equal(plans.filter((plan) => plan.bandwidthGb === 0).length, 1);
 });
 
-test("unsupported, hidden, invalid and unpurchasable products are excluded", () => {
-  for (const extra of [{ proxyType: "RotatingMobile" }, { hidden: true }, { packageId: "" }, { resellerPrice: "bad" }, { resellerPrice: 0 }]) assert.equal(dc(extra), null);
+test("unsupported, hidden, invalid and plans below the minimum price are excluded", () => {
+  for (const extra of [{ proxyType: "RotatingMobile" }, { hidden: true }, { packageId: "" }, { resellerPrice: "bad" }, { resellerPrice: 0 }, { resellerPrice: 9.99 }]) assert.equal(dc(extra), null);
+  assert.equal(dc({ resellerPrice: 10 }).price, 10);
 });
 
 test("combined filters match only real package combinations", () => {

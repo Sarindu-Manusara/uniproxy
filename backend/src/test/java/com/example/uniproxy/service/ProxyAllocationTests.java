@@ -70,4 +70,27 @@ class ProxyAllocationTests {
         assertThrows(IllegalStateException.class, () -> service.purchaseProxy(user, request(Map.of("US", 60, "DE", 40))));
         verify(provider, never()).createOrder(any());
     }
+
+    @Test
+    void rejectsPlansBelowMinimumPriceWithoutPurchasing() {
+        when(provider.getStore("DatacenterP")).thenReturn(Map.of(
+                "payload", Map.of("products", List.of(Map.of(
+                        "packageId", "dc",
+                        "title", "Datacenter",
+                        "proxyType", "DatacenterP",
+                        "ips", 100,
+                        "resellerPrice", "9.99"
+                )))
+        ));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.purchaseProxy(user, request(Map.of("US", 60, "DE", 40)))
+        );
+
+        assertEquals("Plans priced below $10.00 are not available.", exception.getMessage());
+        verify(provider, never()).createOrder(any());
+        verify(users, never()).save(any());
+        assertEquals(new BigDecimal("100.00"), user.getBalance());
+    }
 }
